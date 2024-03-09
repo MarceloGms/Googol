@@ -1,15 +1,16 @@
 # run client
+# usage: make cli id=n
 cli:
-	@java src/Client.java
+	@java -cp bin Client $(id)
 
 # run gateway
 gw:
-	@java src/Gateway.java
+	@java -cp bin Gateway
 
 # run barrels
 brl:
-	@java src/Barrel.java
+	@java -cp bin Barrel
 
 # run downloaders
 dl:
-	@java src/Downloader.java
+	@java -cp bin Downloader
