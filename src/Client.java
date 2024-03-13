@@ -16,11 +16,10 @@ public class Client extends UnicastRemoteObject implements Client_I {
   @Override
   public int func(String s) throws RemoteException {
     System.out.println(s);
+    System.out.print("> ");
     return 0;
   }
 
-  
-  
   public static void main(String[] args) {
     int n = 0;
     
@@ -41,9 +40,11 @@ public class Client extends UnicastRemoteObject implements Client_I {
     try (Scanner sc = new Scanner(System.in)){
       Gateway_I gw = (Gateway_I) Naming.lookup("rmi://localhost:1099/gw");
       Client c = new Client(n);
-      String m = sc.nextLine();
-      gw.func(m, c);
-      sc.close();
+      while (true) {
+				System.out.print("> ");
+				String a = sc.nextLine();
+				gw.func(a, c);
+			}
     } catch (Exception e) {
       e.printStackTrace();
     }

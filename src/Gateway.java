@@ -16,12 +16,13 @@ public class Gateway extends UnicastRemoteObject implements Gateway_I {
   @Override
   public void func(String s, Client_I c) throws RemoteException {
 		System.out.println(s);
+    System.out.print("> ");
     client = c;
 	}
 
   public static void main(String[] args) {
     try (Scanner sc = new Scanner(System.in)) {
-      Registry registry = LocateRegistry.createRegistry(1099);
+      LocateRegistry.createRegistry(1099);
       Naming.rebind("rmi://localhost:1099/gw", new Gateway());
       System.out.println("Gateway running...");
       while (true) {
