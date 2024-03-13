@@ -14,8 +14,8 @@ public class Client extends UnicastRemoteObject implements Client_I {
   }
 
   @Override
-  public int func() throws RemoteException {
-    // TODO Auto-generated method stub
+  public int func(String s) throws RemoteException {
+    System.out.println(s);
     return 0;
   }
 
