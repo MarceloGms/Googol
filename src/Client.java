@@ -56,3 +56,27 @@ public class Client extends UnicastRemoteObject implements Client_I {
   }
   
 }
+
+/* menu 
+indexar url
+pesquisar 
+cunsultar paginas admin
+sair 
+------------------
+pagina admin
+top10 pesquisas
+lista de barrels ativos
+-------------------
+a interface que o gateway disponibiliza para os barrels é diferente da que disponibiliza para os clientes
+com uma funçao subscribe o client envia a sua interface para o gateway e o gateway guarda-a numa lista
+para os barrels é parecido
+-------------------
+downloaders
+jsoup processa url
+agregar palavras, links, titulo, citaçao
+implementar mensagem multicast
+multicast 
+downloaders -server
+barrels -client
+-------------------
+downloaders manager que criar threads downloaders*/
