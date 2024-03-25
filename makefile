@@ -4,7 +4,7 @@ compile:
 
 # run client
 # usage: make cli id=n
-cli:
+cli: compile
 	@java -cp bin Client $(id)
 
 # run gateway

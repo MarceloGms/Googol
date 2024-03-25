@@ -49,12 +49,21 @@ public class Client extends UnicastRemoteObject implements Client_I {
   }
 
   @Override
-  public int func(String s) throws RemoteException {
-    System.out.println(s);
-    return 0;
+  public void printOnClient(String s) throws RemoteException {
+    if (s.equals("Gateway shutting down.")) {
+      System.out.println(ANSI_YELLOW + "Received shutdown signal from server. Exiting program..." + ANSI_RESET);
+      try {
+          UnicastRemoteObject.unexportObject(this, true);
+      } catch (NoSuchObjectException e) {
+      }
+      System.exit(0);
+  } else {
+      System.out.println(s);
+      System.out.print(ANSI_GREEN + ">" + ANSI_RESET);
+  }
   }
 
-  public void run() {
+  public void run() throws RemoteException {
     // Menu
     Scanner sc = new Scanner(System.in);
     while (true) {
@@ -68,6 +77,12 @@ public class Client extends UnicastRemoteObject implements Client_I {
         switch (inp) {
           case 0: // Exit
             sc.close();
+            try {
+              gw.unsubscribe(this);
+              // Unexport the Client object to disconnect from the RMI Registry
+              UnicastRemoteObject.unexportObject(this, true);
+            } catch (NoSuchObjectException e) {
+            }
             System.out.println(ANSI_YELLOW + "Exiting program..." + ANSI_RESET);
             return;
           case 1: // Index URL
@@ -91,12 +106,6 @@ public class Client extends UnicastRemoteObject implements Client_I {
       } catch (IllegalStateException e) {
         System.out.println(ANSI_RED + "Scanner is closed. Exiting program." + ANSI_RESET);
         return;
-      } finally {
-        try {
-          // Unexport the Client object to disconnect from the RMI Registry
-          UnicastRemoteObject.unexportObject(this, true);
-        } catch (NoSuchObjectException e) {
-        }
       }
     }
   }

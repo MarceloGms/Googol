@@ -54,8 +54,33 @@ public class Gateway extends UnicastRemoteObject implements Gateway_I {
     LOGGER.info("Client subscribed\n");
 	}
 
+  @Override
+  public void unsubscribe(Client_I c) throws RemoteException {
+    if (clients.remove(c)) {
+      LOGGER.info("Client unsubscribed\n");
+    } else {
+      LOGGER.warning("Client not found in the subscription list\n");
+    }
+  }
+
   public void run() {
+    Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+      shutdown();
+    }));
     // TODO: Implement gw
+  }
+
+  public void shutdown() {
+    try {
+      for (Client_I c : clients) {
+        c.printOnClient("Gateway shutting down.");
+      }
+      Naming.unbind("rmi://localhost:1099/gw");
+      UnicastRemoteObject.unexportObject(this, true);
+      System.out.println("Gateway shutting down...\n");
+    } catch (Exception e) {
+      LOGGER.log(Level.SEVERE, "Error occurred during shutdown: ", e);
+    }
   }
 
   public static void main(String[] args) {
