@@ -1,6 +1,6 @@
 # compile java files
 compile:
-	@javac -d bin src/*.java
+	@javac -cp lib/*:bin -d bin src/*.java
 
 # run client
 # usage: make cli id=n
@@ -16,7 +16,7 @@ brl:
 	@java -cp bin Barrel
 
 # run downloaders
-dl:
+dl: compile
 	@java -cp bin Downloader
 
 # run googol app

@@ -6,6 +6,8 @@ import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
 import java.util.ArrayList;
+import java.util.LinkedList;
+import java.util.Queue;
 import java.util.Scanner;
 import java.util.logging.FileHandler;
 import java.util.logging.Level;
@@ -14,12 +16,17 @@ import java.util.logging.SimpleFormatter;
 
 public class Gateway extends UnicastRemoteObject implements Gateway_I {
   // static Client_I client;
-  public ArrayList<Client_I> clients;
   private static final Logger LOGGER = Logger.getLogger(Gateway.class.getName());
+
+  private boolean isRunning;
+  public ArrayList<Client_I> clients;
+  public Queue<String> queue;
 
   Gateway() throws RemoteException {
     super();
+    isRunning = true;
     clients = new ArrayList<>();
+    queue = new LinkedList<>();
 
     try {
       FileHandler fileHandler = new FileHandler("gateway.log");
@@ -44,8 +51,9 @@ public class Gateway extends UnicastRemoteObject implements Gateway_I {
   }
 
   @Override
-  public void printOnServer(String s) throws RemoteException {
-		LOGGER.info("Received message from client: " + s + "\n");
+  public void send(String s) throws RemoteException {
+    queue.add(s);
+    LOGGER.info("Message added to the queue: " + s + "\n");
 	}
 
   @Override
@@ -64,10 +72,20 @@ public class Gateway extends UnicastRemoteObject implements Gateway_I {
   }
 
   public void run() {
+    // handle SIGINT
     Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+      isRunning = false;
       shutdown();
     }));
-    // TODO: Implement gw
+
+    while (isRunning) {
+      // TODO: implementar um semaforo para evitar espera ativa da queue
+      // provavelmente isto dps vais ser executado por uma thread e nao aqui
+      if (!queue.isEmpty()) {
+        String url = queue.poll();
+        // TODO: send to downloader
+      }
+    }
   }
 
   public void shutdown() {

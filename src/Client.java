@@ -124,11 +124,10 @@ public class Client extends UnicastRemoteObject implements Client_I {
     String url = sc.nextLine();
     System.out.println();
     try {
-      gw.printOnServer(url);
+      gw.send(url);
     } catch (RemoteException e) {
       e.printStackTrace();
     }
-    // TODO: Implement URL indexing
   }
 
   public void search(Scanner sc) {
