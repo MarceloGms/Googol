@@ -2,5 +2,6 @@ import java.rmi.Remote;
 import java.rmi.RemoteException;
 
 public interface Gateway_I extends Remote{
-  public void func(String s, Client_I c) throws RemoteException;
+  public void printOnServer(String s) throws RemoteException;
+  public void subscribe(Client_I client) throws RemoteException;
 }
