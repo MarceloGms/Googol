@@ -18,35 +18,11 @@ public class Client extends UnicastRemoteObject implements Client_I {
   public static final String ANSI_CYAN = "\u001B[36m";
 
   private int id;
+  private Gateway_I gw;
 
   Client(int id) throws RemoteException{
     super();
     this.id = id;
-  }
-
-  @Override
-  public int func(String s) throws RemoteException {
-    System.out.println(s);
-    return 0;
-  }
-
-  public static void main(String[] args) {
-    int n = 0;
-    Gateway_I gw = null;
-    Client c = null;
-
-    // Validate command line arguments
-    try {
-      if (args.length > 0) {
-        n = Integer.parseInt(args[0]);
-      } else {
-        System.out.println(ANSI_PURPLE + "usage: make cli id=n" + ANSI_RESET);
-        System.exit(1);
-      }
-    } catch (NumberFormatException e) {
-      System.err.println(ANSI_RED + "Invalid integer format: " + args[0] + ANSI_RESET);
-      System.exit(1);
-    }
 
     // Connect to the Gateway
     try {
@@ -63,11 +39,22 @@ public class Client extends UnicastRemoteObject implements Client_I {
     }
 
     try {
-      c = new Client(n);
+      gw.subscribe(this);
     } catch (RemoteException e) {
-      e.printStackTrace();
+      System.err.println(ANSI_RED + "Unable to subscribe." + ANSI_RESET);
+      System.exit(1);
     }
 
+    run();
+  }
+
+  @Override
+  public int func(String s) throws RemoteException {
+    System.out.println(s);
+    return 0;
+  }
+
+  public void run() {
     // Menu
     Scanner sc = new Scanner(System.in);
     while (true) {
@@ -107,14 +94,14 @@ public class Client extends UnicastRemoteObject implements Client_I {
       } finally {
         try {
           // Unexport the Client object to disconnect from the RMI Registry
-          UnicastRemoteObject.unexportObject(c, true);
+          UnicastRemoteObject.unexportObject(this, true);
         } catch (NoSuchObjectException e) {
         }
       }
     }
   }
 
-  private static void printMenu() {
+  public void printMenu() {
     System.out.println(ANSI_CYAN + "Googol Search Engine" + ANSI_RESET);
     System.out.println(ANSI_BLUE + "1. Index URL");
     System.out.println("2. Search");
@@ -122,7 +109,7 @@ public class Client extends UnicastRemoteObject implements Client_I {
     System.out.println("0. Exit\n" + ANSI_RESET);
   }
 
-  private static void indexURL(Scanner sc, Gateway_I gw) {
+  public void indexURL(Scanner sc, Gateway_I gw) {
     System.out.println(ANSI_PURPLE + "Enter URL to index:" + ANSI_RESET);
     System.out.print(ANSI_GREEN + "> " + ANSI_RESET);
     String url = sc.nextLine();
@@ -135,7 +122,7 @@ public class Client extends UnicastRemoteObject implements Client_I {
     // TODO: Implement URL indexing
   }
 
-  private static void search(Scanner sc) {
+  public void search(Scanner sc) {
     System.out.println(ANSI_PURPLE + "Enter search query:" + ANSI_RESET);
     System.out.print(ANSI_GREEN + "> " + ANSI_RESET);
     String query = sc.nextLine();
@@ -143,7 +130,7 @@ public class Client extends UnicastRemoteObject implements Client_I {
     // TODO: Implement search
   }
 
-  private static void handleAdminPages(Scanner sc) {
+  public void handleAdminPages(Scanner sc) {
     int admInp = -1;
     while (true) {
       try {
@@ -154,7 +141,6 @@ public class Client extends UnicastRemoteObject implements Client_I {
         sc.nextLine(); // Consume \n
         switch (admInp) {
           case 0: // Back
-            System.out.println(ANSI_YELLOW + "Returning to main menu.\n" + ANSI_RESET);
             return; // Return to the main menu
           case 1: // Top 10 Searches
             top10Searches();
@@ -175,27 +161,43 @@ public class Client extends UnicastRemoteObject implements Client_I {
     }
   }
 
-  private static void printAdminMenu() {
+  public void printAdminMenu() {
     System.out.println(ANSI_CYAN + "Admin Pages" + ANSI_RESET);
     System.out.println(ANSI_BLUE + "1. Top 10 Searches");
     System.out.println("2. List of Active Barrels");
     System.out.println("0. Back\n" + ANSI_RESET);
   }
 
-  private static void top10Searches() {
+  public void top10Searches() {
     // TODO: Implement top 10 searches
   }
 
-  private static void listActiveBarrels() {
+  public void listActiveBarrels() {
     // TODO: Implement list of active barrels
   }
 
-  
-  @Override
-  public String toString() {
-    return "id=" + id;
+  public static void main(String[] args) {
+
+    // Validate command line arguments
+    int n = 0;
+    try {
+      if (args.length > 0) {
+        n = Integer.parseInt(args[0]);
+      } else {
+        System.out.println(ANSI_PURPLE + "usage: make cli id=n" + ANSI_RESET);
+        System.exit(1);
+      }
+    } catch (NumberFormatException e) {
+      System.err.println(ANSI_RED + "Invalid integer format: " + args[0] + ANSI_RESET);
+      System.exit(1);
+    }
+
+    try {
+      new Client(n);
+    } catch (RemoteException e) {
+      e.printStackTrace();
+    }
   }
-  
 }
 
 /* menu 
