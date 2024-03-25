@@ -1,14 +1,18 @@
-## How to run
+## How to Run
 
-If using vscode:
-Create a .vscode folder with a settings.json inside with:
+Make sure you have `make` installed.
 
-`settings.json`
+#### Run Server:
 
-      {
-          "java.project.sourcePaths": ["src"],
-          "java.project.outputPath": "bin",
-          "java.project.referencedLibraries": [
-              "lib/**/*.jar"
-          ]
-      }
+- Open a terminal.
+- Navigate to the primary directory (googol).
+- Run the command: `make run`
+
+#### Run Clients:
+
+- Open another terminal (or multiple terminals for multiple clients).
+- Navigate to the primary directory (googol).
+- Run the command for each client: `make cli id=n`, where `n` is the ID of the client.
+  - Example: `make cli id=1`, `make cli id=2`, etc.
+
+Ensure that the server is running before you start the clients. This setup will allow you to run the server and multiple clients concurrently.
