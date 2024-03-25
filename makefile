@@ -18,6 +18,8 @@ brl:
 # run downloaders
 dl: compile
 	@java -cp bin;lib/* Downloader
+# for linux
+# @java -cp bin:lib/* Downloader
 
 # run googol app
 run: compile gw brl dl

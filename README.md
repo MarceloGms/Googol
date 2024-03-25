@@ -16,3 +16,5 @@ Make sure you have `make` installed.
   - Example: `make cli id=1`, `make cli id=2`, etc.
 
 Ensure that the server is running before you start the clients. This setup will allow you to run the server and multiple clients concurrently.
+
+Note: For Linux users, use the commented command in the dl section of the makefile instead of the current one.
