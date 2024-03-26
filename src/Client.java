@@ -8,7 +8,7 @@ import java.util.InputMismatchException;
 import java.util.NoSuchElementException;
 import java.util.Scanner;
 
-public class Client extends UnicastRemoteObject implements Client_I {
+public class Client extends UnicastRemoteObject implements IClient {
   public static final String ANSI_RESET = "\u001B[0m";
   public static final String ANSI_RED = "\u001B[31m";
   public static final String ANSI_GREEN = "\u001B[32m";
@@ -18,7 +18,7 @@ public class Client extends UnicastRemoteObject implements Client_I {
   public static final String ANSI_CYAN = "\u001B[36m";
 
   private int id;
-  private Gateway_I gw;
+  private IGatewayCli gw;
 
   Client(int id) throws RemoteException{
     super();
@@ -26,7 +26,7 @@ public class Client extends UnicastRemoteObject implements Client_I {
 
     // Connect to the Gateway
     try {
-      gw = (Gateway_I) Naming.lookup("rmi://localhost:1099/gw");
+      gw = (IGatewayCli) Naming.lookup("rmi://localhost:1099/gw");
     } catch (NotBoundException e) {
       System.err.println(ANSI_RED + "Gateway not bound. Exiting program." + ANSI_RESET);
       System.exit(1);
@@ -57,10 +57,10 @@ public class Client extends UnicastRemoteObject implements Client_I {
       } catch (NoSuchObjectException e) {
       }
       System.exit(0);
-  } else {
+    } else {
       System.out.println(s);
       System.out.print(ANSI_GREEN + ">" + ANSI_RESET);
-  }
+    }
   }
 
   public void run() throws RemoteException {
@@ -118,7 +118,7 @@ public class Client extends UnicastRemoteObject implements Client_I {
     System.out.println("0. Exit\n" + ANSI_RESET);
   }
 
-  public void indexURL(Scanner sc, Gateway_I gw) {
+  public void indexURL(Scanner sc, IGatewayCli gw) {
     System.out.println(ANSI_PURPLE + "Enter URL to index:" + ANSI_RESET);
     System.out.print(ANSI_GREEN + "> " + ANSI_RESET);
     String url = sc.nextLine();

@@ -4,7 +4,7 @@ compile:
 
 # run client
 # usage: make cli id=n
-cli: compile
+cli:
 	@java -cp bin Client $(id)
 
 # run gateway
@@ -15,11 +15,13 @@ gw: compile
 brl:
 	@java -cp bin Barrel
 
+THREADS = 5
 # run downloaders
 dl: compile
-	@java -cp bin;lib/* Downloader
+	@java -cp bin;lib/* Downloader $(THREADS)
 # for linux
 # @java -cp bin:lib/* Downloader
 
 # run googol app
-run: compile gw brl dl
+# (not working)
+# run: compile gw dl brl

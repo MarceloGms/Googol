@@ -3,10 +3,66 @@ import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 import java.io.IOException;
+import java.net.MalformedURLException;
+import java.rmi.Naming;
+import java.rmi.NoSuchObjectException;
+import java.rmi.NotBoundException;
+import java.rmi.RemoteException;
+import java.rmi.server.UnicastRemoteObject;
 import java.util.StringTokenizer;
-public class Downloader {
-  public static void main(String args[]) {
-    String url = "https://theowlhouse.fandom.com/f/p/4400000000000151301/r/4400000000001137256";
+public class Downloader extends UnicastRemoteObject implements IDownloader {
+  private int id;
+  private int nThreads;
+  private IGatewayDl gw;
+
+  Downloader(int nThreads) throws RemoteException {
+    super();
+    this.nThreads = nThreads;
+
+    // Connect to the Gateway
+    try {
+      gw = (IGatewayDl) Naming.lookup("rmi://localhost:1099/gw");
+    } catch (NotBoundException e) {
+      System.err.println("Gateway not bound. Exiting program.");
+      System.exit(1);
+    } catch (MalformedURLException e) {
+      System.err.println("Malformed URL. Exiting program.");
+      System.exit(1);
+    } catch (RemoteException e) {
+      System.err.println("Gateway down. Exiting program.");
+      System.exit(1);
+    }
+
+    gw.AddDM(this);
+    run();
+  }
+
+  public void run() {
+    while (true) {
+      
+    }
+  }
+
+  @Override
+  public void download(String url) throws RemoteException {
+    extract(url);
+  }
+
+  @Override
+  public void send(String s) throws RemoteException {
+    if (s.equals("Gateway shutting down.")) {
+      System.out.println("Received shutdown signal from server. Shutting down...");
+      try {
+          UnicastRemoteObject.unexportObject(this, true);
+      } catch (NoSuchObjectException e) {
+      }
+      System.exit(0);
+    } else {
+      System.out.println(s);
+    }
+  }
+
+  public void extract(String url) {
     try {
       Document doc = Jsoup.connect(url).get();
       StringTokenizer tokens = new StringTokenizer(doc.text());
@@ -19,5 +75,24 @@ public class Downloader {
     } catch (IOException e) {
       e.printStackTrace();
     }
+    // TODO: not finished (wrong output i think)
+  }
+
+  public static void main(String args[]) {
+
+    // Get number of threads
+    int n = 0;
+    try {
+      n = Integer.parseInt(args[0]);
+    } catch (NumberFormatException e) {
+      System.err.println("Invalid number of threads: " + args[0]);
+      System.exit(1);
     }
+
+    try {
+      new Downloader(n);
+    } catch (RemoteException e) {
+      e.printStackTrace();
+    }
+  }
 }
