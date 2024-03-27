@@ -17,13 +17,11 @@ import java.util.logging.Logger;
 import java.util.logging.SimpleFormatter;
 
 public class Gateway extends UnicastRemoteObject implements IGatewayCli, IGatewayDl {
-  // static Client_I client;
   private static final Logger LOGGER = Logger.getLogger(Gateway.class.getName());
-
   private boolean isRunning;
-  public ArrayList<IClient> clients;
-  public Queue<String> queue;
-  public IDownloader downloaderManager;
+  private ArrayList<IClient> clients;
+  private Queue<String> queue;
+  private IDownloader downloaderManager;
   private Semaphore queueSemaphore;
   private Semaphore dmSemaphore;
 
@@ -136,7 +134,7 @@ public class Gateway extends UnicastRemoteObject implements IGatewayCli, IGatewa
     }
   }
 
-  public void shutdown() {
+  private void shutdown() {
     try {
       // send shutdown message to all clients and downloader manager
       for (IClient c : clients) {
@@ -154,7 +152,7 @@ public class Gateway extends UnicastRemoteObject implements IGatewayCli, IGatewa
   }
 
   // check if the URL is valid
-  public boolean isValidURL(String url) {
+  private boolean isValidURL(String url) {
     try {
         new URL(url).toURI();
         return true;

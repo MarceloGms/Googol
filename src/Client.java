@@ -109,7 +109,7 @@ public class Client extends UnicastRemoteObject implements IClient {
     }
   }
 
-  public void printMenu() {
+  private void printMenu() {
     System.out.println(ANSI_CYAN + "Googol Search Engine" + ANSI_RESET);
     System.out.println(ANSI_BLUE + "1. Index URL");
     System.out.println("2. Search");
@@ -117,7 +117,7 @@ public class Client extends UnicastRemoteObject implements IClient {
     System.out.println("0. Exit\n" + ANSI_RESET);
   }
 
-  public void indexURL(Scanner sc, IGatewayCli gw) {
+  private void indexURL(Scanner sc, IGatewayCli gw) {
     System.out.println(ANSI_PURPLE + "Enter URL to index:" + ANSI_RESET);
     System.out.print(ANSI_GREEN + "> " + ANSI_RESET);
     String url = sc.nextLine();
@@ -129,7 +129,7 @@ public class Client extends UnicastRemoteObject implements IClient {
     }
   }
 
-  public void search(Scanner sc) {
+  private void search(Scanner sc) {
     System.out.println(ANSI_PURPLE + "Enter search query:" + ANSI_RESET);
     System.out.print(ANSI_GREEN + "> " + ANSI_RESET);
     String query = sc.nextLine();
@@ -137,7 +137,7 @@ public class Client extends UnicastRemoteObject implements IClient {
     // TODO: Implement search
   }
 
-  public void handleAdminPages(Scanner sc) {
+  private void handleAdminPages(Scanner sc) {
     int admInp = -1;
     while (true) {
       try {
@@ -168,18 +168,18 @@ public class Client extends UnicastRemoteObject implements IClient {
     }
   }
 
-  public void printAdminMenu() {
+  private void printAdminMenu() {
     System.out.println(ANSI_CYAN + "Admin Pages" + ANSI_RESET);
     System.out.println(ANSI_BLUE + "1. Top 10 Searches");
     System.out.println("2. List of Active Barrels");
     System.out.println("0. Back\n" + ANSI_RESET);
   }
 
-  public void top10Searches() {
+  private void top10Searches() {
     // TODO: Implement top 10 searches
   }
 
-  public void listActiveBarrels() {
+  private void listActiveBarrels() {
     // TODO: Implement list of active barrels
   }
 

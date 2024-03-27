@@ -2,22 +2,37 @@ import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
+
+import java.io.BufferedReader;
+import java.io.FileReader;
 import java.io.IOException;
+import java.lang.reflect.Array;
 import java.net.MalformedURLException;
 import java.rmi.Naming;
 import java.rmi.NoSuchObjectException;
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.rmi.server.UnicastRemoteObject;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.StringTokenizer;
+import java.text.Normalizer;
+
 public class Downloader extends UnicastRemoteObject implements IDownloader {
   private int id;
   private int nThreads;
   private IGatewayDl gw;
+  private Set<String> stopWords;
+  private ArrayList<String> ulrsList;
+  private ArrayList<String> keywords;
 
   Downloader(int nThreads) throws RemoteException {
     super();
     this.nThreads = nThreads;
+    stopWords = new HashSet<>();
+    loadStopWords("assets/stop_words.txt");
 
     // Connect to the Gateway
     try {
@@ -60,20 +75,73 @@ public class Downloader extends UnicastRemoteObject implements IDownloader {
     }
   }
 
-  public void extract(String url) {
-    try {
-      Document doc = Jsoup.connect(url).get();
-      StringTokenizer tokens = new StringTokenizer(doc.text());
-      int countTokens = 0;
-      while (tokens.hasMoreElements() && countTokens++ < 100)
-        System.out.println(tokens.nextToken().toLowerCase());
-      Elements links = doc.select("a[href]");
-      for (Element link : links)
-        System.out.println(link.text() + "\n" + link.attr("abs:href") + "\n");
+  private void loadStopWords(String filename) {
+    try (BufferedReader reader = new BufferedReader(new FileReader(filename))) {
+      String line;
+      while ((line = reader.readLine()) != null) {
+        String word = line.trim().toLowerCase();
+        if (!word.isEmpty()) {
+          stopWords.add(normalizeWord(word));
+        }
+      }
     } catch (IOException e) {
       e.printStackTrace();
     }
-    // TODO: not finished (wrong output i think)
+  }
+
+  private void extract(String url) {
+    try {
+      Document doc = Jsoup.connect(url).get();
+      
+      String text = doc.text().toLowerCase();
+      
+      String title = doc.title();
+      
+      String citation = doc.select("meta[name=description]").attr("content");
+      
+      // Extract links
+      ulrsList = new ArrayList<>();
+      Elements links = doc.select("a[href]");
+      for (Element link : links) {
+        String linkUrl = link.attr("abs:href");
+        ulrsList.add(linkUrl);
+      }
+      
+      // Extract keywords
+      keywords = new ArrayList<>();
+      StringTokenizer tokenizer = new StringTokenizer(text);
+      while (tokenizer.hasMoreTokens()) {
+        String word = tokenizer.nextToken().toLowerCase();
+        
+        // skip stop words
+        if (!isStopWord(word))
+          keywords.add(word);
+      }
+      
+      System.out.println("URL: " + url);
+      System.out.println("Title: " + title);
+      System.out.println("Citation: " + citation);
+      System.out.println("Keywords: " + keywords);
+      System.out.println("Links: " + ulrsList);
+      System.out.println("--------------------------------------");
+      // TODO: sera q é suposto remover a pontuaçao das palavras?
+
+      // TODO: send extracted data to the barrels via multicast
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
+    // TODO: ns se é isto q é suposto extrair mas acho q sim
+  }
+
+  private boolean isStopWord(String word) {
+    return stopWords.contains(normalizeWord(word));
+  }
+
+  // normalize the word by removing accents
+  private String normalizeWord(String word) {
+    return Normalizer.normalize(word, Normalizer.Form.NFD)
+            .replaceAll("\\p{M}", "")
+            .toLowerCase();
   }
 
   public static void main(String args[]) {
