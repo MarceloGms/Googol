@@ -58,8 +58,7 @@ public class Client extends UnicastRemoteObject implements IClient {
       }
       System.exit(0);
     } else {
-      System.out.println(s);
-      System.out.print(ANSI_GREEN + ">" + ANSI_RESET);
+      System.out.println(ANSI_RED + s + ANSI_RESET + "\n");
     }
   }
 
@@ -124,7 +123,7 @@ public class Client extends UnicastRemoteObject implements IClient {
     String url = sc.nextLine();
     System.out.println();
     try {
-      gw.send(url);
+      gw.send(url ,this);
     } catch (RemoteException e) {
       e.printStackTrace();
     }

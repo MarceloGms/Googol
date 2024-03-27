@@ -38,9 +38,7 @@ public class Downloader extends UnicastRemoteObject implements IDownloader {
   }
 
   public void run() {
-    while (true) {
-      
-    }
+    
   }
 
   @Override

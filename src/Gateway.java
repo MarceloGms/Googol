@@ -1,5 +1,6 @@
 import java.io.IOException;
 import java.net.MalformedURLException;
+import java.net.URL;
 import java.rmi.Naming;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
@@ -59,10 +60,15 @@ public class Gateway extends UnicastRemoteObject implements IGatewayCli, IGatewa
   
   // Gateway-Client methods
   @Override
-  public void send(String s) throws RemoteException {
-    queue.add(s);
-    LOGGER.info("Message added to the queue: " + s + "\n");
-    queueSemaphore.release();
+  public void send(String s , IClient client) throws RemoteException {
+    if (isValidURL(s)) {
+      queue.add(s);
+      LOGGER.info("URL added to the queue: " + s + "\n");
+      queueSemaphore.release();
+    } else {
+      LOGGER.warning("Invalid URL: " + s + "\n");
+      client.printOnClient("Invalid URL");
+    }
 	}
 
   @Override
@@ -83,8 +89,8 @@ public class Gateway extends UnicastRemoteObject implements IGatewayCli, IGatewa
   // Gateway-Downloader methods
   @Override
   public void AddDM(IDownloader dm) throws RemoteException {
-    System.out.println("Downloader added to the Gateway.");
     downloaderManager = dm;
+    LOGGER.info("Downloader Manager active\n");
     dmSemaphore.release();
   }
 
@@ -97,6 +103,7 @@ public class Gateway extends UnicastRemoteObject implements IGatewayCli, IGatewa
 
     // semaphore to wait for the downloader manager to be ready
     try {
+      LOGGER.info("Gateway waiting for Downloader Manager to be ready...\n");
       dmSemaphore.acquire();
     } catch (InterruptedException e) {
       e.printStackTrace();
@@ -104,17 +111,18 @@ public class Gateway extends UnicastRemoteObject implements IGatewayCli, IGatewa
 
     // gateway main loop
     while (isRunning) {
-      if (queue.isEmpty()) {
-        // semaphore to wait for a message to be added to the queue
-        try {
-          queueSemaphore.acquire();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
+      // semaphore to control the queue
+      try {
+        if (queue.isEmpty())
+          LOGGER.info("Queue is empty. Waiting...\n");
+        queueSemaphore.acquire();
+      } catch (InterruptedException e) {
+          e.printStackTrace();
       }
 
       String url = queue.poll();
 
+      // send the URL to the downloader manager
       if (downloaderManager != null && url != null) {
         try {
           LOGGER.info("Gateway sending download request to Downloader Manager: " + url + "\n");
@@ -122,6 +130,8 @@ public class Gateway extends UnicastRemoteObject implements IGatewayCli, IGatewa
         } catch (RemoteException e) {
           LOGGER.log(Level.SEVERE, "Error occurred during download: ", e);
         }
+      } else {
+        LOGGER.warning("Downloader Manager not available or null URL\n");
       }
     }
   }
@@ -133,12 +143,23 @@ public class Gateway extends UnicastRemoteObject implements IGatewayCli, IGatewa
         c.printOnClient("Gateway shutting down.");
       }
       // TODO: quando o gateway manda um url para o downloader dps se fizer CTRL+C no gateway, o downloader nao para
+      // TODO: ja sei, maybe pq ainda n tenho threads no downloader. quando tiver threads o processo principal do downloader vai tar sempre disponivel para receber a mensagem
       downloaderManager.send("Gateway shutting down.");
       Naming.unbind("rmi://localhost:1099/gw");
       UnicastRemoteObject.unexportObject(this, true);
       System.out.println("Gateway shutting down...\n");
     } catch (Exception e) {
       LOGGER.log(Level.SEVERE, "Error occurred during shutdown: ", e);
+    }
+  }
+
+  // check if the URL is valid
+  public boolean isValidURL(String url) {
+    try {
+        new URL(url).toURI();
+        return true;
+    } catch (Exception e) {
+        return false;
     }
   }
 
