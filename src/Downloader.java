@@ -111,11 +111,14 @@ public class Downloader extends UnicastRemoteObject implements IDownloader {
       keywords = new ArrayList<>();
       StringTokenizer tokenizer = new StringTokenizer(text);
       while (tokenizer.hasMoreTokens()) {
-        String word = tokenizer.nextToken().toLowerCase();
+        String word = tokenizer.nextToken();
+
+        // remove ponctuation
+        word = word.replaceAll("[^a-zA-Z0-9]", "");
         
         // skip stop words
         if (!isStopWord(word))
-          keywords.add(word);
+          keywords.add(normalizeWord(word));
       }
       
       System.out.println("URL: " + url);
@@ -130,7 +133,7 @@ public class Downloader extends UnicastRemoteObject implements IDownloader {
     } catch (IOException e) {
       e.printStackTrace();
     }
-    // TODO: ns se é isto q é suposto extrair mas acho q sim
+    // TODO: ns se é so isto q é suposto extrair mas acho q sim
   }
 
   private boolean isStopWord(String word) {
