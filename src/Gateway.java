@@ -95,15 +95,15 @@ public class Gateway extends UnicastRemoteObject implements IGatewayCli, IGatewa
   }
 
   @Override
-  public void message(String s) throws RemoteException {
-    if (s.equals("No threads available. Waiting for one to be free...")) {
+  public void DlMessage(String s) throws RemoteException {
+    if (s.equals("No threads available.")) {
       LOGGER.warning(s + "\n");
       dlThreadsAvailable = false;
     } else if (s.equals("Thread available.")) {
       LOGGER.info(s + "\n");
       dlThreadsSemaphore.release();
     } else {
-      LOGGER.info("Message from Downloader: " + s + "\n");
+      LOGGER.info(s + "\n");
     }
   }
 
@@ -136,7 +136,7 @@ public class Gateway extends UnicastRemoteObject implements IGatewayCli, IGatewa
       // semaphore to control the downloader threads
       if (!dlThreadsAvailable) {
         try {
-          LOGGER.info("Waiting for downloader threads to be available...\n");
+          LOGGER.warning("Waiting for downloader threads to be available...\n");
           dlThreadsSemaphore.acquire();
         } catch (InterruptedException e) {
           LOGGER.log(Level.SEVERE, "InterruptedException occurred: ", e);

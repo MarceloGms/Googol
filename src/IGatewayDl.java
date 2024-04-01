@@ -3,5 +3,5 @@ import java.rmi.RemoteException;
 
 public interface IGatewayDl  extends Remote {
   public void AddDM(IDownloader dm) throws RemoteException;
-  public void message(String s) throws RemoteException;
+  public void DlMessage(String s) throws RemoteException;
 }

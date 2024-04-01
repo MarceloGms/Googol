@@ -61,16 +61,24 @@ public class Downloader extends UnicastRemoteObject implements IDownloader, Runn
     extract(url);
     System.out.println("Download complete for URL: " + url);
     System.out.println("--------------------------------------");
+    try {
+      gw.DlMessage("Download complete for URL: " + url);
+    } catch (RemoteException e) {
+      e.printStackTrace();
+    }
     threadsSemaphore.release();
+    // TODO: send extracted data to the barrels via multicast
   }
 
   @Override
   public void download(String url) throws RemoteException {
     queue.add(url);
+    // Check if there are available threads
     if (threadsSemaphore.availablePermits() == 0) {
       System.out.println("No threads available. Waiting for one to be free...");
       System.out.println("--------------------------------------");
-      gw.message("No threads available. Waiting for one to be free...");
+      gw.DlMessage("No threads available.");
+      // Wait for the permit to be available
       try {
         threadsSemaphore.acquire();
       } catch (InterruptedException e) {
@@ -78,18 +86,21 @@ public class Downloader extends UnicastRemoteObject implements IDownloader, Runn
       }
       System.out.println("Thread available.");
       System.out.println("--------------------------------------");
-      gw.message("Thread available.");
+      gw.DlMessage("Thread available.");
     } else {
+      // If threads are available, acquire a semaphore permit
       try {
         threadsSemaphore.acquire();
       } catch (InterruptedException e) {
         e.printStackTrace();
       }
     }
+    // Create and start a new thread to handle the download
     Thread thread = new Thread(this);
     thread.start();
     System.out.println("Downloading URL: " + url);
     System.out.println("--------------------------------------");
+    gw.DlMessage("Downloading URL: " + url);
   }
 
   // TODO: o downloader ainda nao desliga quando recebe a mensagem de shutdown nao sei porque
@@ -117,7 +128,8 @@ public class Downloader extends UnicastRemoteObject implements IDownloader, Runn
         }
       }
     } catch (IOException e) {
-      e.printStackTrace();
+      System.err.println("Error: Failed to load stop words file. Exiting program.");
+      System.exit(1);
     }
   }
 
@@ -159,8 +171,8 @@ public class Downloader extends UnicastRemoteObject implements IDownloader, Runn
       System.out.println("Keywords: " + keywords);
       System.out.println("Links: " + ulrsList); */
 
-      // TODO: send extracted data to the barrels via multicast
     } catch (IOException e) {
+      System.err.println("Error: Failed to extract content from URL. URL may be unreachable.");
       e.printStackTrace();
     }
     // TODO: ns se é so isto q é suposto extrair mas acho q sim
