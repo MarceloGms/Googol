@@ -6,7 +6,6 @@ import org.jsoup.select.Elements;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
-import java.lang.reflect.Array;
 import java.net.MalformedURLException;
 import java.rmi.Naming;
 import java.rmi.NoSuchObjectException;
@@ -14,25 +13,31 @@ import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.rmi.server.UnicastRemoteObject;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Queue;
 import java.util.Set;
 import java.util.StringTokenizer;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.Semaphore;
 import java.text.Normalizer;
 
-public class Downloader extends UnicastRemoteObject implements IDownloader {
+public class Downloader extends UnicastRemoteObject implements IDownloader, Runnable {
   private int id;
-  private int nThreads;
+  private int MAX_THREADS;
   private IGatewayDl gw;
   private Set<String> stopWords;
   private ArrayList<String> ulrsList;
   private ArrayList<String> keywords;
+  private Semaphore threadsSemaphore;
+  private Queue<String> queue;
 
-  Downloader(int nThreads) throws RemoteException {
+  Downloader(int MAX_THREADS) throws RemoteException {
     super();
-    this.nThreads = nThreads;
+    this.MAX_THREADS = MAX_THREADS;
     stopWords = new HashSet<>();
     loadStopWords("assets/stop_words.txt");
+    threadsSemaphore = new Semaphore(MAX_THREADS);
+    queue = new ConcurrentLinkedQueue<>();
 
     // Connect to the Gateway
     try {
@@ -49,18 +54,45 @@ public class Downloader extends UnicastRemoteObject implements IDownloader {
     }
 
     gw.AddDM(this);
-    run();
   }
 
   public void run() {
-    
+    String url = queue.poll();
+    extract(url);
+    System.out.println("Download complete for URL: " + url);
+    System.out.println("--------------------------------------");
+    threadsSemaphore.release();
   }
 
   @Override
   public void download(String url) throws RemoteException {
-    extract(url);
+    queue.add(url);
+    if (threadsSemaphore.availablePermits() == 0) {
+      System.out.println("No threads available. Waiting for one to be free...");
+      System.out.println("--------------------------------------");
+      gw.message("No threads available. Waiting for one to be free...");
+      try {
+        threadsSemaphore.acquire();
+      } catch (InterruptedException e) {
+        e.printStackTrace();
+      }
+      System.out.println("Thread available.");
+      System.out.println("--------------------------------------");
+      gw.message("Thread available.");
+    } else {
+      try {
+        threadsSemaphore.acquire();
+      } catch (InterruptedException e) {
+        e.printStackTrace();
+      }
+    }
+    Thread thread = new Thread(this);
+    thread.start();
+    System.out.println("Downloading URL: " + url);
+    System.out.println("--------------------------------------");
   }
 
+  // TODO: o downloader ainda nao desliga quando recebe a mensagem de shutdown nao sei porque
   @Override
   public void send(String s) throws RemoteException {
     if (s.equals("Gateway shutting down.")) {
@@ -121,13 +153,11 @@ public class Downloader extends UnicastRemoteObject implements IDownloader {
           keywords.add(normalizeWord(word));
       }
       
-      System.out.println("URL: " + url);
+      /* System.out.println("URL: " + url);
       System.out.println("Title: " + title);
       System.out.println("Citation: " + citation);
       System.out.println("Keywords: " + keywords);
-      System.out.println("Links: " + ulrsList);
-      System.out.println("--------------------------------------");
-      // TODO: sera q é suposto remover a pontuaçao das palavras?
+      System.out.println("Links: " + ulrsList); */
 
       // TODO: send extracted data to the barrels via multicast
     } catch (IOException e) {

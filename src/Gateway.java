@@ -4,12 +4,10 @@ import java.net.URL;
 import java.rmi.Naming;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
-import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.Queue;
-import java.util.Scanner;
 import java.util.concurrent.Semaphore;
 import java.util.logging.FileHandler;
 import java.util.logging.Level;
@@ -24,6 +22,8 @@ public class Gateway extends UnicastRemoteObject implements IGatewayCli, IGatewa
   private IDownloader downloaderManager;
   private Semaphore queueSemaphore;
   private Semaphore dmSemaphore;
+  private Semaphore dlThreadsSemaphore;
+  private Boolean dlThreadsAvailable;
 
   Gateway() throws RemoteException {
     super();
@@ -33,6 +33,8 @@ public class Gateway extends UnicastRemoteObject implements IGatewayCli, IGatewa
     downloaderManager = null;
     queueSemaphore = new Semaphore(0);
     dmSemaphore = new Semaphore(0);
+    dlThreadsSemaphore = new Semaphore(1);
+    dlThreadsAvailable = true;
 
     try {
       FileHandler fileHandler = new FileHandler("gateway.log");
@@ -92,6 +94,19 @@ public class Gateway extends UnicastRemoteObject implements IGatewayCli, IGatewa
     dmSemaphore.release();
   }
 
+  @Override
+  public void message(String s) throws RemoteException {
+    if (s.equals("No threads available. Waiting for one to be free...")) {
+      LOGGER.warning(s + "\n");
+      dlThreadsAvailable = false;
+    } else if (s.equals("Thread available.")) {
+      LOGGER.info(s + "\n");
+      dlThreadsSemaphore.release();
+    } else {
+      LOGGER.info("Message from Downloader: " + s + "\n");
+    }
+  }
+
   public void run() {
     // handle SIGINT
     Runtime.getRuntime().addShutdownHook(new Thread(() -> {
@@ -104,7 +119,7 @@ public class Gateway extends UnicastRemoteObject implements IGatewayCli, IGatewa
       LOGGER.info("Gateway waiting for Downloader Manager to be ready...\n");
       dmSemaphore.acquire();
     } catch (InterruptedException e) {
-      e.printStackTrace();
+      LOGGER.log(Level.SEVERE, "InterruptedException occurred: ", e);
     }
 
     // gateway main loop
@@ -115,7 +130,18 @@ public class Gateway extends UnicastRemoteObject implements IGatewayCli, IGatewa
           LOGGER.info("Queue is empty. Waiting...\n");
         queueSemaphore.acquire();
       } catch (InterruptedException e) {
-          e.printStackTrace();
+        LOGGER.log(Level.SEVERE, "InterruptedException occurred: ", e);
+      }
+
+      // semaphore to control the downloader threads
+      if (!dlThreadsAvailable) {
+        try {
+          LOGGER.info("Waiting for downloader threads to be available...\n");
+          dlThreadsSemaphore.acquire();
+        } catch (InterruptedException e) {
+          LOGGER.log(Level.SEVERE, "InterruptedException occurred: ", e);
+        }
+        dlThreadsAvailable = true;
       }
 
       String url = queue.poll();
@@ -140,8 +166,7 @@ public class Gateway extends UnicastRemoteObject implements IGatewayCli, IGatewa
       for (IClient c : clients) {
         c.printOnClient("Gateway shutting down.");
       }
-      // TODO: quando o gateway manda um url para o downloader dps se fizer CTRL+C no gateway, o downloader nao para
-      // TODO: ja sei, maybe pq ainda n tenho threads no downloader. quando tiver threads o processo principal do downloader vai tar sempre disponivel para receber a mensagem
+      // TODO: quando o gateway manda um url para o downloader dps se fizer CTRL+C no gateway, o downloader nao para ns pq
       downloaderManager.send("Gateway shutting down.");
       Naming.unbind("rmi://localhost:1099/gw");
       UnicastRemoteObject.unexportObject(this, true);
