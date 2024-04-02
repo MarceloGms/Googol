@@ -1,11 +1,16 @@
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.InetAddress;
+import java.net.MalformedURLException;
 import java.net.MulticastSocket;
+import java.rmi.Naming;
+import java.rmi.NotBoundException;
+import java.rmi.RemoteException;
 import java.util.HashMap;
 import java.util.HashSet;
 
 public class Barrel {
+    private IGatewayBrl gw;
     private final int multicastPort;
     private final String multicastAddress;
     private final HashMap<String, HashSet<String>> invertedIndex;
@@ -14,6 +19,20 @@ public class Barrel {
         this.multicastAddress = multicastAddress;
         this.multicastPort = multicastPort;
         this.invertedIndex = new HashMap<>();
+
+        // Connect to the Gateway
+        try {
+            gw = (IGatewayBrl) Naming.lookup("rmi://localhost:1099/gw");
+        } catch (NotBoundException e) {
+            System.err.println("Gateway not bound. Exiting program.");
+            System.exit(1);
+        } catch (MalformedURLException e) {
+            System.err.println("Malformed URL. Exiting program.");
+            System.exit(1);
+        } catch (RemoteException e) {
+            System.err.println("Gateway down. Exiting program.");
+            System.exit(1);
+        }
     }
 
     public void listenForMulticastMessages() {
