@@ -1,4 +1,6 @@
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.ObjectOutputStream;
 import java.net.DatagramPacket;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
@@ -86,23 +88,34 @@ public class Barrel extends UnicastRemoteObject implements IBarrel, Runnable {
                 multicastSocket.receive(packet);
 
                 String message = new String(packet.getData(), 0, packet.getLength());
-                //System.out.println("Barrel " + id + " received message from " + packet.getAddress().getHostAddress() + ": " + message);
-                String[] parts = message.split("\\n");
+                System.out.println("Barrel " + id + " received message from " + packet.getAddress().getHostAddress() + ": " + message);
+                String[] linhas = message.split("\n");
+                //Falta dividir a informação no titulo, url e keywords
+                for (String linha : linhas) {
 
-                String url = parts[0].replace("URL: ", "");
-                String title = parts[1].replace("Title: ", "");
-                String citation = parts[2].replace("Citation: ", "");
-                String keywordsString = parts[3].replace("Keywords: ", "").replace("[", "").replace("]", "");
-                String[] keywords = keywordsString.split(", ");
-                for (String keyword : keywords) {
+                }
+                //CERTO
+                /*for (String keyword : keywords) {
                     addToIndex(keyword, url);
                 }
-                System.out.println(invertedIndex);
-
-
+                //saveHashMapToFile(invertedIndex, "Barrel" + id + ".txt");
+                System.out.println(invertedIndex);*/
             }
         } catch (IOException e) {
             e.printStackTrace();
+        }
+    }
+
+    // Método para salvar o HashMap em um arquivo (Não sei se está certo)
+    private static void saveHashMapToFile(HashMap<String, HashSet<String>> hashMap, String filename) {
+        try {
+            FileOutputStream fileOut = new FileOutputStream(filename);
+            ObjectOutputStream objectOut = new ObjectOutputStream(fileOut);
+            objectOut.writeObject(hashMap);
+            objectOut.close();
+            System.out.println("HashMap salvo em " + filename);
+        } catch (Exception ex) {
+            ex.printStackTrace();
         }
     }
 
