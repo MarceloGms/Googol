@@ -1,5 +1,6 @@
+import java.rmi.Remote;
 import java.rmi.RemoteException;
 
-public interface IGatewayBrl {
-    public void AddBrl(IBarrel bm) throws RemoteException;
+public interface IGatewayBrl extends Remote {
+    public void AddBrl(IBarrel brl) throws RemoteException;
 }

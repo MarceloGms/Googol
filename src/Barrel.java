@@ -6,25 +6,47 @@ import java.net.MalformedURLException;
 import java.net.MulticastSocket;
 import java.net.NetworkInterface;
 import java.rmi.Naming;
+import java.rmi.NoSuchObjectException;
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
+import java.rmi.server.UnicastRemoteObject;
 import java.util.HashMap;
 import java.util.HashSet;
 
-public class Barrel {
+public class Barrel extends UnicastRemoteObject implements IBarrel, Runnable {
+    private int id;
     private IGatewayBrl gw;
+    private static final int N_BARRELS = 3;
     private final int multicastPort;
     private final String multicastAddress;
-    private final HashMap<String, HashSet<String>> invertedIndex;
+    private HashMap<String, HashSet<String>> invertedIndex;
 
-    public Barrel(String multicastAddress, int multicastPort) {
+    public Barrel(String multicastAddress, int multicastPort, int id) throws RemoteException {
         this.multicastAddress = multicastAddress;
         this.multicastPort = multicastPort;
-        this.invertedIndex = new HashMap<>();
+        this.id = id;
+        invertedIndex = new HashMap<>();
+    }
 
+    @Override
+    public void send(String s) throws RemoteException {
+        if (s.equals("Gateway shutting down.")) {
+        System.out.println("Received shutdown signal from server. Shutting down...");
+        try {
+            UnicastRemoteObject.unexportObject(this, true);
+        } catch (NoSuchObjectException e) {
+        }
+        System.exit(0);
+        } else {
+            System.out.println(s + "\n");
+        }
+    }
+
+    public void run() {
         // Connect to the Gateway
         try {
             gw = (IGatewayBrl) Naming.lookup("rmi://localhost:1099/gw");
+            System.out.println("Barrel " + id + " connected to Gateway.");
         } catch (NotBoundException e) {
             System.err.println("Gateway not bound. Exiting program.");
             System.exit(1);
@@ -35,14 +57,23 @@ public class Barrel {
             System.err.println("Gateway down. Exiting program.");
             System.exit(1);
         }
+
+        try {
+            gw.AddBrl(this);
+            System.out.println("Barrel " + id + " bound to Gateway.");
+        } catch (RemoteException e) {
+            e.printStackTrace();
+        }
+
+        listenForMulticastMessages();
     }
 
     public void listenForMulticastMessages() {
         try (MulticastSocket multicastSocket = new MulticastSocket(multicastPort)) {
             InetAddress group = InetAddress.getByName(multicastAddress);
-            multicastSocket.joinGroup(new InetSocketAddress(group, 0), NetworkInterface.getByIndex(0));
+            multicastSocket.joinGroup(new InetSocketAddress(group, multicastPort), NetworkInterface.getByIndex(0));
 
-            System.out.println("Listening for multicast messages...");
+            System.out.println("Barrel " + id + " listening for multicast messages...");
 
             while (true) {
                 byte[] buffer = new byte[1000];
@@ -50,8 +81,8 @@ public class Barrel {
                 multicastSocket.receive(packet);
 
                 String message = new String(packet.getData(), 0, packet.getLength());
-                System.out.println("Received message from " + packet.getAddress().getHostAddress() + ": " + message);
-                
+                System.out.println("Barrel " + id + " received message from " + packet.getAddress().getHostAddress() + ": " + message);
+
                 // Process the received message as needed
                 processMessage(message);
             }
@@ -60,7 +91,7 @@ public class Barrel {
         }
     }
 
-    public void addToIndex(String term, String url) {
+    private void addToIndex(String term, String url) {
         HashSet<String> urls = invertedIndex.get(term);
         if (urls == null) {
             urls = new HashSet<String>();
@@ -76,11 +107,17 @@ public class Barrel {
     }
 
     public static void main(String[] args) {
-        // Example usage
-        String multicastAddress = "230.0.0.0"; // Example multicast address
-        int multicastPort = 12345; // Example multicast port
+        String multicastAddress = "230.0.0.0";
+        int multicastPort = 12345;
 
-        Barrel barrel = new Barrel(multicastAddress, multicastPort);
-        barrel.listenForMulticastMessages();
+        for (int i = 1; i <= N_BARRELS; i++) {
+            try {
+                Barrel barrel = new Barrel(multicastAddress, multicastPort, i);
+                Thread thread = new Thread(barrel);
+                thread.start();
+            } catch (RemoteException e) {
+                e.printStackTrace();
+            }
+        }
     }
 }

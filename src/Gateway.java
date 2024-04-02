@@ -14,27 +14,34 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.logging.SimpleFormatter;
 
-public class Gateway extends UnicastRemoteObject implements IGatewayCli, IGatewayDl {
+public class Gateway extends UnicastRemoteObject implements IGatewayCli, IGatewayDl, IGatewayBrl {
   private static final Logger LOGGER = Logger.getLogger(Gateway.class.getName());
   private boolean isRunning;
   private ArrayList<IClient> clients;
+  private ArrayList<IBarrel> barrels;
   private Queue<String> queue;
   private IDownloader downloaderManager;
   private Semaphore queueSemaphore;
   private Semaphore dmSemaphore;
   private Semaphore dlThreadsSemaphore;
   private Boolean dlThreadsAvailable;
+  private Semaphore brlSemaphore;
+  private int brlCount;
+  private final int N_BARRELS = 3;
 
   Gateway() throws RemoteException {
     super();
     isRunning = true;
     clients = new ArrayList<>();
+    barrels = new ArrayList<>();
     queue = new LinkedList<>();
     downloaderManager = null;
     queueSemaphore = new Semaphore(0);
     dmSemaphore = new Semaphore(0);
     dlThreadsSemaphore = new Semaphore(1);
     dlThreadsAvailable = true;
+    brlSemaphore = new Semaphore(0);
+    brlCount = 0;
 
     try {
       FileHandler fileHandler = new FileHandler("gateway.log");
@@ -107,12 +114,31 @@ public class Gateway extends UnicastRemoteObject implements IGatewayCli, IGatewa
     }
   }
 
+  // Gateway-Barrel methods
+  @Override
+  public void AddBrl(IBarrel brl) throws RemoteException {
+    barrels.add(brl);
+    LOGGER.info("Barrel added\n");
+    brlCount++;
+    if (brlCount == N_BARRELS) {
+      brlSemaphore.release();
+    }
+  }
+
   public void run() {
     // handle SIGINT
     Runtime.getRuntime().addShutdownHook(new Thread(() -> {
       isRunning = false;
       shutdown();
     }));
+
+    // wait for all barrels to be ready
+    try {
+      LOGGER.info("Gateway waiting for all barrels to be ready...\n");
+      brlSemaphore.acquire();
+    } catch (InterruptedException e) {
+      LOGGER.log(Level.SEVERE, "InterruptedException occurred: ", e);
+    }
 
     // semaphore to wait for the downloader manager to be ready
     try {
@@ -167,7 +193,11 @@ public class Gateway extends UnicastRemoteObject implements IGatewayCli, IGatewa
         c.printOnClient("Gateway shutting down.");
       }
       // TODO: quando o gateway manda um url para o downloader dps se fizer CTRL+C no gateway, o downloader nao para ns pq
-      downloaderManager.send("Gateway shutting down.");
+      if (downloaderManager != null)
+        downloaderManager.send("Gateway shutting down.");
+      for (IBarrel b : barrels) {
+        b.send("Gateway shutting down.");
+      }
       Naming.unbind("rmi://localhost:1099/gw");
       UnicastRemoteObject.unexportObject(this, true);
       System.out.println("Gateway shutting down...\n");

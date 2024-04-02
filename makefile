@@ -3,9 +3,8 @@ compile:
 	@javac -cp lib/* src/*.java -d bin
 
 # run client
-# usage: make cli id=n
 cli:
-	@java -cp bin Client $(id)
+	@java -cp bin Client
 
 # run gateway
 gw: compile
@@ -17,7 +16,7 @@ brl:
 
 THREADS = 5
 # run downloaders
-dl: compile
+dl:
 	@java -cp bin;lib/* Downloader $(THREADS)
 # for linux
 # @java -cp bin:lib/* Downloader

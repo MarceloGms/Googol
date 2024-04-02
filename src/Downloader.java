@@ -25,15 +25,13 @@ import java.util.concurrent.Semaphore;
 import java.text.Normalizer;
 
 public class Downloader extends UnicastRemoteObject implements IDownloader, Runnable {
-  private int id;
-  private int MAX_THREADS;
+  private final int MAX_THREADS;
   private IGatewayDl gw;
   private Set<String> stopWords;
   private ArrayList<String> ulrsList;
   private ArrayList<String> keywords;
   private Semaphore threadsSemaphore;
   private Queue<String> queue;
-  private int port;
   private String title;
   private String citation;
   private final String multicastAddress;
@@ -52,6 +50,7 @@ public class Downloader extends UnicastRemoteObject implements IDownloader, Runn
     // Connect to the Gateway
     try {
       gw = (IGatewayDl) Naming.lookup("rmi://localhost:1099/gw");
+      System.out.println("Connected to Gateway.");
     } catch (NotBoundException e) {
       System.err.println("Gateway not bound. Exiting program.");
       System.exit(1);
@@ -64,6 +63,7 @@ public class Downloader extends UnicastRemoteObject implements IDownloader, Runn
     }
 
     gw.AddDM(this);
+    System.out.println("Downloader bound to Gateway.");
   }
 
   public void run() {

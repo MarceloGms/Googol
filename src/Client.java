@@ -17,12 +17,10 @@ public class Client extends UnicastRemoteObject implements IClient {
   public static final String ANSI_PURPLE = "\u001B[35m";
   public static final String ANSI_CYAN = "\u001B[36m";
 
-  private int id;
   private IGatewayCli gw;
 
-  Client(int id) throws RemoteException{
+  Client() throws RemoteException{
     super();
-    this.id = id;
 
     // Connect to the Gateway
     try {
@@ -184,49 +182,10 @@ public class Client extends UnicastRemoteObject implements IClient {
   }
 
   public static void main(String[] args) {
-
-    // Validate command line arguments
-    int n = 0;
     try {
-      if (args.length > 0) {
-        n = Integer.parseInt(args[0]);
-      } else {
-        System.out.println(ANSI_PURPLE + "usage: make cli id=n" + ANSI_RESET);
-        System.exit(1);
-      }
-    } catch (NumberFormatException e) {
-      System.err.println(ANSI_RED + "Invalid integer format: " + args[0] + ANSI_RESET);
-      System.exit(1);
-    }
-
-    try {
-      new Client(n);
+      new Client();
     } catch (RemoteException e) {
       e.printStackTrace();
     }
   }
 }
-
-/* menu 
-indexar url
-pesquisar 
-cunsultar paginas admin
-sair 
-------------------
-pagina admin
-top10 pesquisas
-lista de barrels ativos
--------------------
-a interface que o gateway disponibiliza para os barrels é diferente da que disponibiliza para os clientes
-com uma funçao subscribe o client envia a sua interface para o gateway e o gateway guarda-a numa lista
-para os barrels é parecido
--------------------
-downloaders
-jsoup processa url
-agregar palavras, links, titulo, citaçao
-implementar mensagem multicast
-multicast 
-downloaders -server
-barrels -client
--------------------
-downloaders manager que criar threads downloaders*/
