@@ -6,7 +6,13 @@ import org.jsoup.select.Elements;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
+import java.net.InetAddress;
 import java.net.MalformedURLException;
+import java.net.ServerSocket;
+import java.net.Socket;
+import java.net.SocketException;
 import java.rmi.Naming;
 import java.rmi.NoSuchObjectException;
 import java.rmi.NotBoundException;
@@ -30,10 +36,17 @@ public class Downloader extends UnicastRemoteObject implements IDownloader, Runn
   private ArrayList<String> keywords;
   private Semaphore threadsSemaphore;
   private Queue<String> queue;
+  private int port;
+  private String title;
+  private String citation;
+  private final String multicastAddress;
+  private final int multicastPort;
 
-  Downloader(int MAX_THREADS) throws RemoteException {
+  Downloader(int MAX_THREADS, String multicastAddress, int multicastPort) throws RemoteException {
     super();
     this.MAX_THREADS = MAX_THREADS;
+    this.multicastAddress = multicastAddress;
+    this.multicastPort = multicastPort;
     stopWords = new HashSet<>();
     loadStopWords("assets/stop_words.txt");
     threadsSemaphore = new Semaphore(MAX_THREADS);
@@ -62,13 +75,29 @@ public class Downloader extends UnicastRemoteObject implements IDownloader, Runn
     System.out.println("Download complete for URL: " + url);
     System.out.println("--------------------------------------");
     try {
-      gw.DlMessage("Download complete for URL: " + url);
+        gw.DlMessage("Download complete for URL: " + url);
     } catch (RemoteException e) {
-      e.printStackTrace();
+        e.printStackTrace();
     }
     threadsSemaphore.release();
-    // TODO: send extracted data to the barrels via multicast
-  }
+
+    try (DatagramSocket multicastSocket = new DatagramSocket()) {
+        // Prepare the information to be sent
+        String resposta = "URL: " + url + "\nTitle: " + title + "\nCitation: " + citation + "\nKeywords: " + keywords + "\nLinks: " + ulrsList;
+        byte[] data = resposta.getBytes();
+
+        // Create a DatagramPacket with the data and the multicast address and port
+        InetAddress group = InetAddress.getByName(multicastAddress);
+        DatagramPacket packet = new DatagramPacket(data, data.length, group, multicastPort);
+
+        // Send the DatagramPacket via multicast
+        multicastSocket.send(packet);
+
+        System.out.println("Information sent successfully via multicast.");
+    } catch (IOException e) {
+        System.out.println("IO: " + e.getMessage());
+    }
+}
 
   @Override
   public void download(String url) throws RemoteException {
@@ -139,9 +168,9 @@ public class Downloader extends UnicastRemoteObject implements IDownloader, Runn
       
       String text = doc.text().toLowerCase();
       
-      String title = doc.title();
+      title = doc.title();
       
-      String citation = doc.select("meta[name=description]").attr("content");
+      citation = doc.select("meta[name=description]").attr("content");
       
       // Extract links
       ulrsList = new ArrayList<>();
@@ -200,8 +229,11 @@ public class Downloader extends UnicastRemoteObject implements IDownloader, Runn
       System.exit(1);
     }
 
+    String multicastAddress = "230.0.0.0"; // Example multicast address
+    int multicastPort = 12345; // Example multicast port
+    
     try {
-      new Downloader(n);
+      new Downloader(n, multicastAddress, multicastPort);
     } catch (RemoteException e) {
       e.printStackTrace();
     }
