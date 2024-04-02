@@ -10,6 +10,7 @@ import java.rmi.NoSuchObjectException;
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.rmi.server.UnicastRemoteObject;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 
@@ -20,12 +21,16 @@ public class Barrel extends UnicastRemoteObject implements IBarrel, Runnable {
     private final int multicastPort;
     private final String multicastAddress;
     private HashMap<String, HashSet<String>> invertedIndex;
+    private final HashMap<String, ArrayList<String>> pageLinks;
+    private final HashMap<String, Integer> pageLinkCounts;
 
     public Barrel(String multicastAddress, int multicastPort, int id) throws RemoteException {
         this.multicastAddress = multicastAddress;
         this.multicastPort = multicastPort;
         this.id = id;
-        invertedIndex = new HashMap<>();
+        this.invertedIndex = new HashMap<>();
+        this.pageLinks = new HashMap<>();
+        this.pageLinkCounts = new HashMap<>();
     }
 
     @Override
@@ -76,22 +81,32 @@ public class Barrel extends UnicastRemoteObject implements IBarrel, Runnable {
             System.out.println("Barrel " + id + " listening for multicast messages...");
 
             while (true) {
-                byte[] buffer = new byte[1000];
+                byte[] buffer = new byte[65507];  // Maximum size of a UDP packet
                 DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
                 multicastSocket.receive(packet);
 
                 String message = new String(packet.getData(), 0, packet.getLength());
-                System.out.println("Barrel " + id + " received message from " + packet.getAddress().getHostAddress() + ": " + message);
+                //System.out.println("Barrel " + id + " received message from " + packet.getAddress().getHostAddress() + ": " + message);
+                String[] parts = message.split("\\n");
 
-                // Process the received message as needed
-                processMessage(message);
+                String url = parts[0].replace("URL: ", "");
+                String title = parts[1].replace("Title: ", "");
+                String citation = parts[2].replace("Citation: ", "");
+                String keywordsString = parts[3].replace("Keywords: ", "").replace("[", "").replace("]", "");
+                String[] keywords = keywordsString.split(", ");
+                for (String keyword : keywords) {
+                    addToIndex(keyword, url);
+                }
+                System.out.println(invertedIndex);
+
+
             }
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
 
-    private void addToIndex(String term, String url) {
+    public void addToIndex(String term, String url) {
         HashSet<String> urls = invertedIndex.get(term);
         if (urls == null) {
             urls = new HashSet<String>();
@@ -100,10 +115,26 @@ public class Barrel extends UnicastRemoteObject implements IBarrel, Runnable {
         urls.add(url);
     }
 
-    private void processMessage(String message) {
-        // Implement your message processing logic here
-        // For example, you can parse the message and take appropriate actions
-        // Example: System.out.println("Processed message: " + message);
+    //FUNÇÕES AINDA NÃO USADAS
+
+    public void addPageLinks(String url, ArrayList<String> links) {
+    	pageLinks.put(url, links);
+    }
+
+    public void urlConnections(String url) {
+    	Integer num = pageLinkCounts.getOrDefault(url, 0);
+        pageLinkCounts.put(url, num + 1);
+    }
+
+    public ArrayList<String> getPagesWithLinkTo(String url){
+        ArrayList<String> pagesWithLink = new ArrayList<String>();
+        for (String pageUrl : pageLinks.keySet()) {
+            ArrayList<String> links = pageLinks.get(pageUrl);
+            if (links.contains(url)) {
+                pagesWithLink.add(pageUrl);
+            }
+        }
+        return pagesWithLink;
     }
 
     public static void main(String[] args) {

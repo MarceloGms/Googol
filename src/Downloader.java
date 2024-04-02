@@ -82,7 +82,7 @@ public class Downloader extends UnicastRemoteObject implements IDownloader, Runn
         // Prepare the information to be sent
         String resposta = "URL: " + url + "\nTitle: " + title + "\nCitation: " + citation + "\nKeywords: " + keywords + "\nLinks: " + ulrsList;
         byte[] data = resposta.getBytes();
-
+        
         // Create a DatagramPacket with the data and the multicast address and port
         InetAddress group = InetAddress.getByName(multicastAddress);
         DatagramPacket packet = new DatagramPacket(data, data.length, group, multicastPort);
@@ -94,6 +94,7 @@ public class Downloader extends UnicastRemoteObject implements IDownloader, Runn
     } catch (IOException e) {
         System.out.println("IO: " + e.getMessage());
     }
+
 }
 
   @Override
@@ -226,8 +227,8 @@ public class Downloader extends UnicastRemoteObject implements IDownloader, Runn
       System.exit(1);
     }
 
-    String multicastAddress = "230.0.0.0"; // Example multicast address
-    int multicastPort = 12345; // Example multicast port
+    String multicastAddress = "230.0.0.0"; 
+    int multicastPort = 12345; 
     
     try {
       new Downloader(n, multicastAddress, multicastPort);
