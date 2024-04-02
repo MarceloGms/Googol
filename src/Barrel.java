@@ -1,7 +1,9 @@
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.net.MulticastSocket;
+import java.net.NetworkInterface;
 import java.util.HashMap;
 import java.util.HashSet;
 
@@ -19,7 +21,7 @@ public class Barrel {
     public void listenForMulticastMessages() {
         try (MulticastSocket multicastSocket = new MulticastSocket(multicastPort)) {
             InetAddress group = InetAddress.getByName(multicastAddress);
-            multicastSocket.joinGroup(group);
+            multicastSocket.joinGroup(new InetSocketAddress(group, 0), NetworkInterface.getByIndex(0));
 
             System.out.println("Listening for multicast messages...");
 
