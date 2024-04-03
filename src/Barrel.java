@@ -109,7 +109,11 @@ public class Barrel extends UnicastRemoteObject implements IBarrel, Runnable {
                 }
                 String[] links = linksString.split(", ");
                 int linksCount = links.length;
-                //System.out.println(invertedIndex);
+                for (String link : links) {
+                    addToUrls(link, url);
+                }
+
+                System.out.println(invertedIndex);
                 saveHashMapToFile(invertedIndex, "Barrel" + id + ".dat");
 
             }
@@ -141,9 +145,6 @@ public class Barrel extends UnicastRemoteObject implements IBarrel, Runnable {
             ObjectOutputStream objectOut = new ObjectOutputStream(fileOut);
             objectOut.writeObject(hashMap);
             objectOut.close();
-            System.out.println("HashMap salvo em " + filename);
-            /*
-            */
             
         } catch (Exception ex) {
             ex.printStackTrace();
@@ -173,11 +174,16 @@ public class Barrel extends UnicastRemoteObject implements IBarrel, Runnable {
         urls.add(url);
     }
 
-    //FUNÇÕES AINDA NÃO USADAS
-
-    public void addPageLinks(String url, ArrayList<String> links) {
-    	pageLinks.put(url, links);
+    public void addToUrls(String url, String url_new) {
+        HashSet<String> urls = pageLinks.get(url);
+        if (urls == null) {
+            urls = new HashSet<String>();
+            invertedIndex.put(url,  urls);
+        }
+        urls.add(url);
     }
+    
+    //FUNÇÕES AINDA NÃO USADAS
 
     public void urlConnections(String url) {
     	Integer num = pageLinkCounts.getOrDefault(url, 0);
