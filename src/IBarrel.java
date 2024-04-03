@@ -3,5 +3,4 @@ import java.rmi.RemoteException;
 
 public interface IBarrel extends Remote {
   public void send(String s) throws RemoteException;
-  public void run() throws RemoteException;
 }

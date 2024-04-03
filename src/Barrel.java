@@ -1,5 +1,7 @@
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.DatagramPacket;
 import java.net.InetAddress;
@@ -73,6 +75,7 @@ public class Barrel extends UnicastRemoteObject implements IBarrel, Runnable {
         }
 
         listenForMulticastMessages();
+
     }
 
     public void listenForMulticastMessages() {
@@ -88,34 +91,72 @@ public class Barrel extends UnicastRemoteObject implements IBarrel, Runnable {
                 multicastSocket.receive(packet);
 
                 String message = new String(packet.getData(), 0, packet.getLength());
-                System.out.println("Barrel " + id + " received message from " + packet.getAddress().getHostAddress() + ": " + message);
-                String[] linhas = message.split("\n");
-                //Falta dividir a informação no titulo, url e keywords
-                for (String linha : linhas) {
+                //System.out.println("Barrel " + id + " received message from " + packet.getAddress().getHostAddress() + ": " + message);
+                String[] parts = message.split("\n");
 
-                }
-                //CERTO
-                /*for (String keyword : keywords) {
+                String url = parts[0].replace("URL: ", "");
+                String title = parts[1].replace("Title: ", "");
+                String citation = parts[2].replace("Citation: ", "");
+                String keywordsString = parts[3].replace("Keywords: ", "").replace("[", "").replace("]", "");
+                String linksString = parts[4].replace("Links: ", "").replace("[", "").replace("]", "");
+                String[] keywords = keywordsString.split(", ");
+                for (String keyword : keywords) {
                     addToIndex(keyword, url);
                 }
-                //saveHashMapToFile(invertedIndex, "Barrel" + id + ".txt");
-                System.out.println(invertedIndex);*/
+                String[] links = linksString.split(", ");
+                int linksCount = links.length;
+                //System.out.println(invertedIndex);
+                saveHashMapToFile(invertedIndex, "Barrel" + id + ".dat");
+
             }
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
 
-    // Método para salvar o HashMap em um arquivo (Não sei se está certo)
+    public void searchBarrel() {
+        /*
+        // Chamar o método para ler o HashMap do arquivo
+        HashMap<String, HashSet<String>> hashMap1 = readHashMapFromFile("../barrels/" + filename);
+
+        // Imprimir o conteúdo do HashMap
+        if (hashMap1 != null) {
+            for (String key : hashMap1.keySet()) {
+                System.out.println("Chave: " + key);
+                System.out.println("Valores: " + hashMap1.get(key));
+            }
+        } else {
+            System.out.println("O arquivo está vazio ou ocorreu um erro ao ler o arquivo.");
+        }*/
+    }
+
+    // Método para salvar o HashMap em um arquivo
     private static void saveHashMapToFile(HashMap<String, HashSet<String>> hashMap, String filename) {
         try {
-            FileOutputStream fileOut = new FileOutputStream(filename);
+            FileOutputStream fileOut = new FileOutputStream("barrels/" + filename);
             ObjectOutputStream objectOut = new ObjectOutputStream(fileOut);
             objectOut.writeObject(hashMap);
             objectOut.close();
             System.out.println("HashMap salvo em " + filename);
+            /*
+            */
+            
         } catch (Exception ex) {
             ex.printStackTrace();
+        }
+    }
+
+    // Método para ler o HashMap de um arquivo
+    private static HashMap<String, HashSet<String>> readHashMapFromFile(String filename) {
+        try {
+            FileInputStream fileIn = new FileInputStream("barrels/" + filename);
+            ObjectInputStream objectIn = new ObjectInputStream(fileIn);
+            HashMap<String, HashSet<String>> hashMap = (HashMap<String, HashSet<String>>) objectIn.readObject();
+            objectIn.close();
+            return hashMap;
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            return null;
         }
     }
 

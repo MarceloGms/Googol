@@ -80,32 +80,7 @@ public class Downloader extends UnicastRemoteObject implements IDownloader, Runn
 
     try (DatagramSocket multicastSocket = new DatagramSocket()) {
         // Prepare the information to be sent
-        // Montar a string de acordo com o formato especificado
-        StringBuilder respostaBuilder = new StringBuilder();
-        respostaBuilder.append("type | url; ");
-        respostaBuilder.append("URL | ").append(url).append("\n");
-        respostaBuilder.append("type | title; ");
-        respostaBuilder.append("Title | ").append(title).append("\n");
-        respostaBuilder.append("type | citation; ");
-        respostaBuilder.append("Citation | ").append(citation).append("\n");
-
-        // Representar a lista de palavras-chave
-        respostaBuilder.append("type | keywords_list; ");
-        respostaBuilder.append("Keywords_count | ").append(keywords.size()).append("; ");
-        for (int i = 0; i < keywords.size()-1; i++) {
-          respostaBuilder.append("Keywords_").append(i).append("_value | ").append(keywords.get(i)).append("; ");
-        }
-        respostaBuilder.append("Keywords_").append(keywords.size()-1).append("_value | ").append(keywords.get(keywords.size()-1)).append("\n");
-
-        // Representar a lista de URLs
-        respostaBuilder.append("type | link_list; ");
-        respostaBuilder.append("Links_count | ").append(ulrsList.size()).append("; ");
-        for (int i = 0; i < ulrsList.size()-1; i++) {
-          respostaBuilder.append("Links_").append(i).append("_name | ").append(ulrsList.get(i)).append("; ");
-        }
-        respostaBuilder.append("Links_").append(ulrsList.size()-1).append("_name | ").append(ulrsList.get(ulrsList.size()-1)).append("\n");	
-
-        String resposta = respostaBuilder.toString();
+        String resposta = "URL: " + url + "\nTitle: " + title + "\nCitation: " + citation + "\nKeywords: " + keywords + "\nLinks: " + ulrsList;
         byte[] data = resposta.getBytes();
         
         // Create a DatagramPacket with the data and the multicast address and port
