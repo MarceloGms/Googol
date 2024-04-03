@@ -26,8 +26,9 @@ public class Barrel extends UnicastRemoteObject implements IBarrel, Runnable {
     private final String multicastAddress;
     private HashMap<String, HashSet<String>> invertedIndex;
     private boolean running;
-    private final HashMap<String, ArrayList<String>> pageLinks;
-    private final HashMap<String, Integer> pageLinkCounts;
+    private HashMap<String, HashSet<String>> pageLinks;
+    private HashMap<String, Integer> pageLinkCounts;
+    MulticastSocket multicastSocket;
 
     public Barrel(String multicastAddress, int multicastPort, int id) throws RemoteException {
         this.multicastAddress = multicastAddress;
@@ -35,15 +36,20 @@ public class Barrel extends UnicastRemoteObject implements IBarrel, Runnable {
         this.id = id;
         invertedIndex = new HashMap<>();
         running = true;
-        this.invertedIndex = new HashMap<>();
-        this.pageLinks = new HashMap<>();
-        this.pageLinkCounts = new HashMap<>();
+        pageLinks = new HashMap<>();
+        pageLinkCounts = new HashMap<>();
+        try {
+            multicastSocket = new MulticastSocket(multicastPort);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     @Override
     public void send(String s) throws RemoteException {
         if (s.equals("Gateway shutting down.")) {
             running = false;
+            multicastSocket.close();
             System.out.println("Received shutdown signal from server. Shutting down...");
             try {
                 UnicastRemoteObject.unexportObject(this, true);
@@ -83,7 +89,7 @@ public class Barrel extends UnicastRemoteObject implements IBarrel, Runnable {
     }
 
     private void listenForMulticastMessages() {
-        try (MulticastSocket multicastSocket = new MulticastSocket(multicastPort)) {
+        try {
             InetAddress group = InetAddress.getByName(multicastAddress);
             multicastSocket.joinGroup(new InetSocketAddress(group, multicastPort), NetworkInterface.getByIndex(0));
 
@@ -138,10 +144,10 @@ public class Barrel extends UnicastRemoteObject implements IBarrel, Runnable {
         }*/
     }
 
-    // Método para salvar o HashMap em um arquivo
+    // Save hashmap to file
     private static void saveHashMapToFile(HashMap<String, HashSet<String>> hashMap, String filename) {
         try {
-            FileOutputStream fileOut = new FileOutputStream("barrels/" + filename);
+            FileOutputStream fileOut = new FileOutputStream("assets/" + filename);
             ObjectOutputStream objectOut = new ObjectOutputStream(fileOut);
             objectOut.writeObject(hashMap);
             objectOut.close();
@@ -151,10 +157,10 @@ public class Barrel extends UnicastRemoteObject implements IBarrel, Runnable {
         }
     }
 
-    // Método para ler o HashMap de um arquivo
+    // Read hashmap from file
     private static HashMap<String, HashSet<String>> readHashMapFromFile(String filename) {
         try {
-            FileInputStream fileIn = new FileInputStream("barrels/" + filename);
+            FileInputStream fileIn = new FileInputStream("assets/" + filename);
             ObjectInputStream objectIn = new ObjectInputStream(fileIn);
             HashMap<String, HashSet<String>> hashMap = (HashMap<String, HashSet<String>>) objectIn.readObject();
             objectIn.close();
@@ -188,17 +194,6 @@ public class Barrel extends UnicastRemoteObject implements IBarrel, Runnable {
     public void urlConnections(String url) {
     	Integer num = pageLinkCounts.getOrDefault(url, 0);
         pageLinkCounts.put(url, num + 1);
-    }
-
-    public ArrayList<String> getPagesWithLinkTo(String url){
-        ArrayList<String> pagesWithLink = new ArrayList<String>();
-        for (String pageUrl : pageLinks.keySet()) {
-            ArrayList<String> links = pageLinks.get(pageUrl);
-            if (links.contains(url)) {
-                pagesWithLink.add(pageUrl);
-            }
-        }
-        return pagesWithLink;
     }
 
     public static void main(String[] args) {
