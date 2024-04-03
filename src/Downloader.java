@@ -37,6 +37,7 @@ public class Downloader extends UnicastRemoteObject implements IDownloader, Runn
   private final String multicastAddress;
   private final int multicastPort;
   private Boolean running;
+  private DatagramSocket multicastSocket;
 
   Downloader(int MAX_THREADS, String multicastAddress, int multicastPort) throws RemoteException {
     super();
@@ -66,6 +67,13 @@ public class Downloader extends UnicastRemoteObject implements IDownloader, Runn
 
     gw.AddDM(this);
     System.out.println("Downloader bound to Gateway.");
+
+    try {
+      multicastSocket = new DatagramSocket();
+    } catch (IOException e) {
+      System.err.println("Error creating multicast socket: " + e.getMessage());
+      System.exit(1);
+    }
 
     for (int i = 1; i <= MAX_THREADS; i++) {
       Thread thread = new Thread(this, Integer.toString(i));
@@ -105,7 +113,7 @@ public class Downloader extends UnicastRemoteObject implements IDownloader, Runn
           e.printStackTrace();
       }
 
-      try (DatagramSocket multicastSocket = new DatagramSocket()) {
+      try {
           // Prepare the information to be sent
           String resposta = "URL: " + url + "\nTitle: " + title + "\nCitation: " + citation + "\nKeywords: " + keywords + "\nLinks: " + ulrsList;
           byte[] data = resposta.getBytes();
@@ -136,6 +144,7 @@ public class Downloader extends UnicastRemoteObject implements IDownloader, Runn
   public void send(String s) throws RemoteException {
     if (s.equals("Gateway shutting down.")) {
       running = false;
+      multicastSocket.close();
       System.out.println("Received shutdown signal from server. Shutting down...");
       try {
           UnicastRemoteObject.unexportObject(this, true);
