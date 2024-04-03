@@ -10,6 +10,7 @@ import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.MalformedURLException;
+import java.net.SocketException;
 import java.rmi.Naming;
 import java.rmi.NoSuchObjectException;
 import java.rmi.NotBoundException;
@@ -123,7 +124,11 @@ public class Downloader extends UnicastRemoteObject implements IDownloader, Runn
           DatagramPacket packet = new DatagramPacket(data, data.length, group, multicastPort);
 
           // Send the DatagramPacket via multicast
-          multicastSocket.send(packet);
+          try {
+            multicastSocket.send(packet);
+          } catch (SocketException e) {
+            return;
+          }
 
           System.out.println("Information sent successfully via multicast.");
       } catch (IOException e) {
@@ -196,12 +201,6 @@ public class Downloader extends UnicastRemoteObject implements IDownloader, Runn
         if (!isStopWord(word))
           keywords.add(normalizeWord(word));
       }
-      
-      /* System.out.println("URL: " + url);
-      System.out.println("Title: " + title);
-      System.out.println("Citation: " + citation);
-      System.out.println("Keywords: " + keywords);
-      System.out.println("Links: " + ulrsList); */
 
     } catch (IOException e) {
       System.err.println("Error: Failed to extract content from URL. URL may be unreachable.");

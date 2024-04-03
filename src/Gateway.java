@@ -6,6 +6,7 @@ import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.server.UnicastRemoteObject;
 import java.util.ArrayList;
+import java.util.Random;
 import java.util.logging.FileHandler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -56,7 +57,7 @@ public class Gateway extends UnicastRemoteObject implements IGatewayCli, IGatewa
   @Override
   public void send(String s , IClient client) throws RemoteException {
     if (isValidURL(s)) {
-      if (downloaderManager == null || brlCount != N_BARRELS) {
+      if (downloaderManager == null || brlCount < N_BARRELS) {
         LOGGER.warning("Downloader Manager or Barrels not active\n");
         client.printOnClient("Downloader Manager or barrels not active");
       } else {
@@ -82,6 +83,17 @@ public class Gateway extends UnicastRemoteObject implements IGatewayCli, IGatewa
     } else {
       LOGGER.warning("Client not found in the subscription list\n");
     }
+  }
+
+  @Override
+  public String search(String s) throws RemoteException {
+    Random rand = new Random();
+    if (brlCount == 0) {
+      LOGGER.warning("No barrels available\n");
+      return "No barrels available";
+    }
+    int idx = rand.nextInt(barrels.size());
+    return barrels.get(idx).search(s);
   }
 
   // Gateway-Downloader methods

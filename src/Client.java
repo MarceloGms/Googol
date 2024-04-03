@@ -132,7 +132,50 @@ public class Client extends UnicastRemoteObject implements IClient {
     System.out.print(ANSI_GREEN + "> " + ANSI_RESET);
     String query = sc.nextLine();
     System.out.println();
-    // TODO: Implement search
+    String result = null;
+    try {
+      result = gw.search(query);
+      if (result != null) {
+        if (result.equals("No barrels available")) {
+          System.out.println(ANSI_RED + "No barrels available.\n" + ANSI_RESET);
+          return;
+        } else {
+          displayResults(result, sc);
+        }
+      } else {
+        System.out.println(ANSI_RED + "No results found.\n" + ANSI_RESET);
+      }
+    } catch (RemoteException e) {
+      System.out.println(ANSI_RED + "Error occurred during search.\n" + ANSI_RESET);
+    }
+  }
+
+  private void displayResults(String result, Scanner sc) {
+    String[] resultsArray = result.split("\\|");
+    int totalPages = (resultsArray.length + 10 - 1) / 10;
+    int currentPage = 0;
+
+    while (true) {
+      System.out.println(ANSI_YELLOW + "\nSearch results:" + ANSI_RESET);
+      for (int i = currentPage * 10; i < Math.min((currentPage + 1) * 10, resultsArray.length); i++) {
+        System.out.println(resultsArray[i]);
+      }
+
+      System.out.println(ANSI_BLUE + "\nPage " + (currentPage + 1) + " of " + totalPages + ANSI_RESET);
+      System.out.println(ANSI_CYAN + "Press 'n' for next page, 'p' for previous page, or 'q' to quit:" + ANSI_RESET);
+      System.out.print(ANSI_GREEN + "> " + ANSI_RESET);
+      String input = sc.nextLine().toLowerCase();
+
+      if (input.equals("q")) {
+        break;
+      } else if (input.equals("n")) {
+        currentPage = (currentPage + 1) % totalPages;
+      } else if (input.equals("p")) {
+        currentPage = (currentPage - 1 + totalPages) % totalPages;
+      } else {
+        System.out.println(ANSI_RED + "Invalid command. Please try again." + ANSI_RESET);
+      }
+    }
   }
 
   private void handleAdminPages(Scanner sc) {
