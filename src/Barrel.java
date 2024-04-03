@@ -25,6 +25,7 @@ public class Barrel extends UnicastRemoteObject implements IBarrel, Runnable {
     private final int multicastPort;
     private final String multicastAddress;
     private HashMap<String, HashSet<String>> invertedIndex;
+    private boolean running;
     private final HashMap<String, ArrayList<String>> pageLinks;
     private final HashMap<String, Integer> pageLinkCounts;
 
@@ -32,6 +33,8 @@ public class Barrel extends UnicastRemoteObject implements IBarrel, Runnable {
         this.multicastAddress = multicastAddress;
         this.multicastPort = multicastPort;
         this.id = id;
+        invertedIndex = new HashMap<>();
+        running = true;
         this.invertedIndex = new HashMap<>();
         this.pageLinks = new HashMap<>();
         this.pageLinkCounts = new HashMap<>();
@@ -40,12 +43,13 @@ public class Barrel extends UnicastRemoteObject implements IBarrel, Runnable {
     @Override
     public void send(String s) throws RemoteException {
         if (s.equals("Gateway shutting down.")) {
-        System.out.println("Received shutdown signal from server. Shutting down...");
-        try {
-            UnicastRemoteObject.unexportObject(this, true);
-        } catch (NoSuchObjectException e) {
-        }
-        System.exit(0);
+            running = false;
+            System.out.println("Received shutdown signal from server. Shutting down...");
+            try {
+                UnicastRemoteObject.unexportObject(this, true);
+            } catch (NoSuchObjectException e) {
+            }
+            System.exit(0);
         } else {
             System.out.println(s + "\n");
         }
@@ -68,7 +72,7 @@ public class Barrel extends UnicastRemoteObject implements IBarrel, Runnable {
         }
 
         try {
-            gw.AddBrl(this);
+            gw.AddBrl(this, id);
             System.out.println("Barrel " + id + " bound to Gateway.");
         } catch (RemoteException e) {
             e.printStackTrace();
@@ -78,14 +82,14 @@ public class Barrel extends UnicastRemoteObject implements IBarrel, Runnable {
 
     }
 
-    public void listenForMulticastMessages() {
+    private void listenForMulticastMessages() {
         try (MulticastSocket multicastSocket = new MulticastSocket(multicastPort)) {
             InetAddress group = InetAddress.getByName(multicastAddress);
             multicastSocket.joinGroup(new InetSocketAddress(group, multicastPort), NetworkInterface.getByIndex(0));
 
             System.out.println("Barrel " + id + " listening for multicast messages...");
 
-            while (true) {
+            while (running) {
                 byte[] buffer = new byte[65507];  // Maximum size of a UDP packet
                 DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
                 multicastSocket.receive(packet);

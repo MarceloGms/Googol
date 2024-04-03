@@ -6,9 +6,6 @@ import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.server.UnicastRemoteObject;
 import java.util.ArrayList;
-import java.util.LinkedList;
-import java.util.Queue;
-import java.util.concurrent.Semaphore;
 import java.util.logging.FileHandler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -16,31 +13,17 @@ import java.util.logging.SimpleFormatter;
 
 public class Gateway extends UnicastRemoteObject implements IGatewayCli, IGatewayDl, IGatewayBrl {
   private static final Logger LOGGER = Logger.getLogger(Gateway.class.getName());
-  private boolean isRunning;
   private ArrayList<IClient> clients;
   private ArrayList<IBarrel> barrels;
-  private Queue<String> queue;
   private IDownloader downloaderManager;
-  private Semaphore queueSemaphore;
-  private Semaphore dmSemaphore;
-  private Semaphore dlThreadsSemaphore;
-  private Boolean dlThreadsAvailable;
-  private Semaphore brlSemaphore;
   private int brlCount;
   private final int N_BARRELS = 3;
 
   Gateway() throws RemoteException {
     super();
-    isRunning = true;
     clients = new ArrayList<>();
     barrels = new ArrayList<>();
-    queue = new LinkedList<>();
     downloaderManager = null;
-    queueSemaphore = new Semaphore(0);
-    dmSemaphore = new Semaphore(0);
-    dlThreadsSemaphore = new Semaphore(1);
-    dlThreadsAvailable = true;
-    brlSemaphore = new Semaphore(0);
     brlCount = 0;
 
     try {
@@ -62,16 +45,24 @@ public class Gateway extends UnicastRemoteObject implements IGatewayCli, IGatewa
       LOGGER.log(Level.SEVERE, "Exception occurred: ", e);
       throw new RuntimeException(e);
     }
-    run();
+
+    // handle SIGINT
+    Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+      shutdown();
+    }));
   }
   
   // Gateway-Client methods
   @Override
   public void send(String s , IClient client) throws RemoteException {
     if (isValidURL(s)) {
-      queue.add(s);
-      LOGGER.info("URL added to the queue: " + s + "\n");
-      queueSemaphore.release();
+      if (downloaderManager == null || brlCount != N_BARRELS) {
+        LOGGER.warning("Downloader Manager or Barrels not active\n");
+        client.printOnClient("Downloader Manager or barrels not active");
+      } else {
+        downloaderManager.download(s);
+        LOGGER.info("Gateway sending download request to Downloader Manager: " + s + "\n");
+      }
     } else {
       LOGGER.warning("Invalid URL: " + s + "\n");
       client.printOnClient("Invalid URL");
@@ -98,92 +89,19 @@ public class Gateway extends UnicastRemoteObject implements IGatewayCli, IGatewa
   public void AddDM(IDownloader dm) throws RemoteException {
     downloaderManager = dm;
     LOGGER.info("Downloader Manager active\n");
-    dmSemaphore.release();
   }
 
   @Override
   public void DlMessage(String s) throws RemoteException {
-    if (s.equals("No threads available.")) {
-      LOGGER.warning(s + "\n");
-      dlThreadsAvailable = false;
-    } else if (s.equals("Thread available.")) {
-      LOGGER.info(s + "\n");
-      dlThreadsSemaphore.release();
-    } else {
-      LOGGER.info(s + "\n");
-    }
+    LOGGER.info(s + "\n");
   }
 
   // Gateway-Barrel methods
   @Override
-  public void AddBrl(IBarrel brl) throws RemoteException {
+  public void AddBrl(IBarrel brl, int id) throws RemoteException {
     barrels.add(brl);
-    LOGGER.info("Barrel added\n");
+    LOGGER.info("Barrel added: " + id + "\n");
     brlCount++;
-    if (brlCount == N_BARRELS) {
-      brlSemaphore.release();
-    }
-  }
-
-  public void run() {
-    // handle SIGINT
-    Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-      isRunning = false;
-      shutdown();
-    }));
-
-    // wait for all barrels to be ready
-    try {
-      LOGGER.info("Gateway waiting for all barrels to be ready...\n");
-      brlSemaphore.acquire();
-    } catch (InterruptedException e) {
-      LOGGER.log(Level.SEVERE, "InterruptedException occurred: ", e);
-    }
-
-    // semaphore to wait for the downloader manager to be ready
-    try {
-      LOGGER.info("Gateway waiting for Downloader Manager to be ready...\n");
-      dmSemaphore.acquire();
-    } catch (InterruptedException e) {
-      LOGGER.log(Level.SEVERE, "InterruptedException occurred: ", e);
-    }
-
-    // gateway main loop
-    while (isRunning) {
-      // semaphore to control the queue
-      try {
-        if (queue.isEmpty())
-          LOGGER.info("Queue is empty. Waiting...\n");
-        queueSemaphore.acquire();
-      } catch (InterruptedException e) {
-        LOGGER.log(Level.SEVERE, "InterruptedException occurred: ", e);
-      }
-
-      // semaphore to control the downloader threads
-      if (!dlThreadsAvailable) {
-        try {
-          LOGGER.warning("Waiting for downloader threads to be available...\n");
-          dlThreadsSemaphore.acquire();
-        } catch (InterruptedException e) {
-          LOGGER.log(Level.SEVERE, "InterruptedException occurred: ", e);
-        }
-        dlThreadsAvailable = true;
-      }
-
-      String url = queue.poll();
-
-      // send the URL to the downloader manager
-      if (downloaderManager != null && url != null) {
-        try {
-          LOGGER.info("Gateway sending download request to Downloader Manager: " + url + "\n");
-          downloaderManager.download(url);
-        } catch (RemoteException e) {
-          LOGGER.log(Level.SEVERE, "Error occurred during download: ", e);
-        }
-      } else {
-        LOGGER.warning("Downloader Manager not available or null URL\n");
-      }
-    }
   }
 
   private void shutdown() {
