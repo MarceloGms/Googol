@@ -237,8 +237,8 @@ public class Downloader extends UnicastRemoteObject implements IDownloader, Runn
       System.exit(1);
     }
 
-    String multicastAddress = "230.0.0.0"; // Example multicast address
-    int multicastPort = 12345; // Example multicast port
+    String multicastAddress = "230.0.0.0"; 
+    int multicastPort = 12345; 
     
     try {
       new Downloader(n, multicastAddress, multicastPort);

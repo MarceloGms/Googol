@@ -1,4 +1,6 @@
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.ObjectOutputStream;
 import java.net.DatagramPacket;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
@@ -10,6 +12,7 @@ import java.rmi.NoSuchObjectException;
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.rmi.server.UnicastRemoteObject;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 
@@ -21,6 +24,8 @@ public class Barrel extends UnicastRemoteObject implements IBarrel, Runnable {
     private final String multicastAddress;
     private HashMap<String, HashSet<String>> invertedIndex;
     private boolean running;
+    private final HashMap<String, ArrayList<String>> pageLinks;
+    private final HashMap<String, Integer> pageLinkCounts;
 
     public Barrel(String multicastAddress, int multicastPort, int id) throws RemoteException {
         this.multicastAddress = multicastAddress;
@@ -28,6 +33,9 @@ public class Barrel extends UnicastRemoteObject implements IBarrel, Runnable {
         this.id = id;
         invertedIndex = new HashMap<>();
         running = true;
+        this.invertedIndex = new HashMap<>();
+        this.pageLinks = new HashMap<>();
+        this.pageLinkCounts = new HashMap<>();
     }
 
     @Override
@@ -79,22 +87,43 @@ public class Barrel extends UnicastRemoteObject implements IBarrel, Runnable {
             System.out.println("Barrel " + id + " listening for multicast messages...");
 
             while (running) {
-                byte[] buffer = new byte[1000];
+                byte[] buffer = new byte[65507];  // Maximum size of a UDP packet
                 DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
                 multicastSocket.receive(packet);
 
                 String message = new String(packet.getData(), 0, packet.getLength());
                 System.out.println("Barrel " + id + " received message from " + packet.getAddress().getHostAddress() + ": " + message);
+                String[] linhas = message.split("\n");
+                //Falta dividir a informação no titulo, url e keywords
+                for (String linha : linhas) {
 
-                // Process the received message as needed
-                processMessage(message);
+                }
+                //CERTO
+                /*for (String keyword : keywords) {
+                    addToIndex(keyword, url);
+                }
+                //saveHashMapToFile(invertedIndex, "Barrel" + id + ".txt");
+                System.out.println(invertedIndex);*/
             }
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
 
-    private void addToIndex(String term, String url) {
+    // Método para salvar o HashMap em um arquivo (Não sei se está certo)
+    private static void saveHashMapToFile(HashMap<String, HashSet<String>> hashMap, String filename) {
+        try {
+            FileOutputStream fileOut = new FileOutputStream(filename);
+            ObjectOutputStream objectOut = new ObjectOutputStream(fileOut);
+            objectOut.writeObject(hashMap);
+            objectOut.close();
+            System.out.println("HashMap salvo em " + filename);
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
+    }
+
+    public void addToIndex(String term, String url) {
         HashSet<String> urls = invertedIndex.get(term);
         if (urls == null) {
             urls = new HashSet<String>();
@@ -103,10 +132,26 @@ public class Barrel extends UnicastRemoteObject implements IBarrel, Runnable {
         urls.add(url);
     }
 
-    private void processMessage(String message) {
-        // Implement your message processing logic here
-        // For example, you can parse the message and take appropriate actions
-        // Example: System.out.println("Processed message: " + message);
+    //FUNÇÕES AINDA NÃO USADAS
+
+    public void addPageLinks(String url, ArrayList<String> links) {
+    	pageLinks.put(url, links);
+    }
+
+    public void urlConnections(String url) {
+    	Integer num = pageLinkCounts.getOrDefault(url, 0);
+        pageLinkCounts.put(url, num + 1);
+    }
+
+    public ArrayList<String> getPagesWithLinkTo(String url){
+        ArrayList<String> pagesWithLink = new ArrayList<String>();
+        for (String pageUrl : pageLinks.keySet()) {
+            ArrayList<String> links = pageLinks.get(pageUrl);
+            if (links.contains(url)) {
+                pagesWithLink.add(pageUrl);
+            }
+        }
+        return pagesWithLink;
     }
 
     public static void main(String[] args) {
