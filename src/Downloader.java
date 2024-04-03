@@ -30,12 +30,13 @@ public class Downloader extends UnicastRemoteObject implements IDownloader, Runn
   private Set<String> stopWords;
   private ArrayList<String> ulrsList;
   private ArrayList<String> keywords;
-  private Semaphore threadsSemaphore;
+  private Semaphore queueSemaphore;
   private Queue<String> queue;
   private String title;
   private String citation;
   private final String multicastAddress;
   private final int multicastPort;
+  private Boolean running;
 
   Downloader(int MAX_THREADS, String multicastAddress, int multicastPort) throws RemoteException {
     super();
@@ -44,8 +45,9 @@ public class Downloader extends UnicastRemoteObject implements IDownloader, Runn
     this.multicastPort = multicastPort;
     stopWords = new HashSet<>();
     loadStopWords("assets/stop_words.txt");
-    threadsSemaphore = new Semaphore(MAX_THREADS);
+    queueSemaphore = new Semaphore(0);
     queue = new ConcurrentLinkedQueue<>();
+    running = true;
 
     // Connect to the Gateway
     try {
@@ -64,75 +66,76 @@ public class Downloader extends UnicastRemoteObject implements IDownloader, Runn
 
     gw.AddDM(this);
     System.out.println("Downloader bound to Gateway.");
+
+    for (int i = 1; i <= MAX_THREADS; i++) {
+      Thread thread = new Thread(this, Integer.toString(i));
+      thread.start();
+    }
   }
 
   public void run() {
-    String url = queue.poll();
-    extract(url);
-    System.out.println("Download complete for URL: " + url);
-    System.out.println("--------------------------------------");
-    try {
-        gw.DlMessage("Download complete for URL: " + url);
-    } catch (RemoteException e) {
+    while (running) {
+      try {
+        if (queue.isEmpty()) {
+          System.out.println(Thread.currentThread().getName() + ": No URLs to download. Waiting...");
+          gw.DlMessage(Thread.currentThread().getName() + ": No URLs to download. Waiting...");
+        }
+        queueSemaphore.acquire();
+      } catch (InterruptedException e) {
         e.printStackTrace();
+      } catch (RemoteException e) {
+        e.printStackTrace();
+      }
+      String url = queue.poll();
+      if (url == null) {
+        continue;
+      }
+      System.out.println(Thread.currentThread().getName() + ": Downloading URL: " + url);
+      try {
+        gw.DlMessage(Thread.currentThread().getName() + ": Downloading URL: " + url);
+      } catch (RemoteException e) {
+        e.printStackTrace();
+      }
+      extract(url);
+      System.out.println(Thread.currentThread().getName() + ": Download complete for URL: " + url);
+      System.out.println("--------------------------------------");
+      try {
+          gw.DlMessage(Thread.currentThread().getName() + ": Download complete for URL: " + url);
+      } catch (RemoteException e) {
+          e.printStackTrace();
+      }
+
+      try (DatagramSocket multicastSocket = new DatagramSocket()) {
+          // Prepare the information to be sent
+          String resposta = "URL: " + url + "\nTitle: " + title + "\nCitation: " + citation + "\nKeywords: " + keywords + "\nLinks: " + ulrsList;
+          byte[] data = resposta.getBytes();
+
+          // Create a DatagramPacket with the data and the multicast address and port
+          InetAddress group = InetAddress.getByName(multicastAddress);
+          DatagramPacket packet = new DatagramPacket(data, data.length, group, multicastPort);
+
+          // Send the DatagramPacket via multicast
+          multicastSocket.send(packet);
+
+          System.out.println("Information sent successfully via multicast.");
+      } catch (IOException e) {
+          System.out.println("IO: " + e.getMessage());
+      }
     }
-    threadsSemaphore.release();
-
-    try (DatagramSocket multicastSocket = new DatagramSocket()) {
-        // Prepare the information to be sent
-        String resposta = "URL: " + url + "\nTitle: " + title + "\nCitation: " + citation + "\nKeywords: " + keywords + "\nLinks: " + ulrsList;
-        byte[] data = resposta.getBytes();
-
-        // Create a DatagramPacket with the data and the multicast address and port
-        InetAddress group = InetAddress.getByName(multicastAddress);
-        DatagramPacket packet = new DatagramPacket(data, data.length, group, multicastPort);
-
-        // Send the DatagramPacket via multicast
-        multicastSocket.send(packet);
-
-        System.out.println("Information sent successfully via multicast.");
-    } catch (IOException e) {
-        System.out.println("IO: " + e.getMessage());
-    }
-}
+  }
 
   @Override
   public void download(String url) throws RemoteException {
     queue.add(url);
-    // Check if there are available threads
-    if (threadsSemaphore.availablePermits() == 0) {
-      System.out.println("No threads available. Waiting for one to be free...");
-      System.out.println("--------------------------------------");
-      gw.DlMessage("No threads available.");
-      // Wait for the permit to be available
-      try {
-        threadsSemaphore.acquire();
-      } catch (InterruptedException e) {
-        e.printStackTrace();
-      }
-      System.out.println("Thread available.");
-      System.out.println("--------------------------------------");
-      gw.DlMessage("Thread available.");
-    } else {
-      // If threads are available, acquire a semaphore permit
-      try {
-        threadsSemaphore.acquire();
-      } catch (InterruptedException e) {
-        e.printStackTrace();
-      }
-    }
-    // Create and start a new thread to handle the download
-    Thread thread = new Thread(this);
-    thread.start();
-    System.out.println("Downloading URL: " + url);
-    System.out.println("--------------------------------------");
-    gw.DlMessage("Downloading URL: " + url);
+    queueSemaphore.release();
+    // gw.DlMessage("URL added to the DL queue: " + url);
   }
 
   // TODO: o downloader ainda nao desliga quando recebe a mensagem de shutdown nao sei porque
   @Override
   public void send(String s) throws RemoteException {
     if (s.equals("Gateway shutting down.")) {
+      running = false;
       System.out.println("Received shutdown signal from server. Shutting down...");
       try {
           UnicastRemoteObject.unexportObject(this, true);
@@ -144,24 +147,15 @@ public class Downloader extends UnicastRemoteObject implements IDownloader, Runn
     }
   }
 
-  private void loadStopWords(String filename) {
-    try (BufferedReader reader = new BufferedReader(new FileReader(filename))) {
-      String line;
-      while ((line = reader.readLine()) != null) {
-        String word = line.trim().toLowerCase();
-        if (!word.isEmpty()) {
-          stopWords.add(normalizeWord(word));
-        }
-      }
-    } catch (IOException e) {
-      System.err.println("Error: Failed to load stop words file. Exiting program.");
-      System.exit(1);
-    }
-  }
-
   private void extract(String url) {
     try {
-      Document doc = Jsoup.connect(url).get();
+      Document doc = null;
+      try {
+        doc = Jsoup.connect(url).get();
+      } catch (IllegalArgumentException e) {
+        System.err.println("Error: Invalid URL. Exiting program.");
+        return;
+      }
       
       String text = doc.text().toLowerCase();
       
@@ -175,6 +169,9 @@ public class Downloader extends UnicastRemoteObject implements IDownloader, Runn
       for (Element link : links) {
         String linkUrl = link.attr("abs:href");
         ulrsList.add(linkUrl);
+        queue.add(linkUrl);
+        queueSemaphore.release();
+        // gw.DlMessage("URL added to the DL queue: " + linkUrl);
       }
       
       // Extract keywords
@@ -201,7 +198,21 @@ public class Downloader extends UnicastRemoteObject implements IDownloader, Runn
       System.err.println("Error: Failed to extract content from URL. URL may be unreachable.");
       e.printStackTrace();
     }
-    // TODO: ns se é so isto q é suposto extrair mas acho q sim
+  }
+
+  private void loadStopWords(String filename) {
+    try (BufferedReader reader = new BufferedReader(new FileReader(filename))) {
+      String line;
+      while ((line = reader.readLine()) != null) {
+        String word = line.trim().toLowerCase();
+        if (!word.isEmpty()) {
+          stopWords.add(normalizeWord(word));
+        }
+      }
+    } catch (IOException e) {
+      System.err.println("Error: Failed to load stop words file. Exiting program.");
+      System.exit(1);
+    }
   }
 
   private boolean isStopWord(String word) {
