@@ -17,6 +17,7 @@ import java.rmi.server.UnicastRemoteObject;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 
 public class Barrel extends UnicastRemoteObject implements IBarrel, Runnable {
     private int id;
@@ -26,9 +27,9 @@ public class Barrel extends UnicastRemoteObject implements IBarrel, Runnable {
     private final String multicastAddress;
     private HashMap<String, HashSet<String>> invertedIndex;
     private boolean running;
-    private HashMap<String, HashSet<String>> pageLinks;
+    private HashMap<String, LinkedHashSet<String>> pageLinks;
     private HashMap<String, Integer> pageLinkCounts;
-    MulticastSocket multicastSocket;
+    private MulticastSocket multicastSocket;
 
     public Barrel(String multicastAddress, int multicastPort, int id) throws RemoteException {
         this.multicastAddress = multicastAddress;
@@ -113,14 +114,19 @@ public class Barrel extends UnicastRemoteObject implements IBarrel, Runnable {
                 for (String keyword : keywords) {
                     addToIndex(keyword, url);
                 }
+
                 String[] links = linksString.split(", ");
                 int linksCount = links.length;
+                LinkedHashSet<String> link_value = new LinkedHashSet<String>();
+                pageLinks.put(url, link_value);
+                link_value.add(String.valueOf(linksCount));
+                
                 for (String link : links) {
-                    addToUrls(link, url);
+                    addToUrls(url, link);
                 }
-
-                System.out.println(invertedIndex);
+                System.out.println(pageLinks);
                 saveHashMapToFile(invertedIndex, "Barrel" + id + ".dat");
+                
 
             }
         } catch (IOException e) {
@@ -175,18 +181,14 @@ public class Barrel extends UnicastRemoteObject implements IBarrel, Runnable {
         HashSet<String> urls = invertedIndex.get(term);
         if (urls == null) {
             urls = new HashSet<String>();
-            invertedIndex.put(term,  urls);
+            invertedIndex.put(term, urls);
         }
         urls.add(url);
     }
 
     public void addToUrls(String url, String url_new) {
-        HashSet<String> urls = pageLinks.get(url);
-        if (urls == null) {
-            urls = new HashSet<String>();
-            invertedIndex.put(url,  urls);
-        }
-        urls.add(url);
+        LinkedHashSet<String> links = pageLinks.get(url);
+        links.add(url_new);
     }
     
     //FUNÇÕES AINDA NÃO USADAS
