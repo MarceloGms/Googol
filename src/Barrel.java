@@ -143,7 +143,7 @@ public class Barrel extends UnicastRemoteObject implements IBarrel, Runnable {
     // Save hashmap to file
     private static void saveHashMapToFile(HashMap<String, HashSet<String>> hashMap, String filename) {
         try {
-            FileOutputStream fileOut = new FileOutputStream("barrels/" + filename);
+            FileOutputStream fileOut = new FileOutputStream("assets/" + filename);
             ObjectOutputStream objectOut = new ObjectOutputStream(fileOut);
             objectOut.writeObject(hashMap);
             objectOut.close();
@@ -159,7 +159,7 @@ public class Barrel extends UnicastRemoteObject implements IBarrel, Runnable {
     // Read hashmap from file
     private static HashMap<String, HashSet<String>> readHashMapFromFile(String filename) {
         try {
-            FileInputStream fileIn = new FileInputStream("barrels/" + filename);
+            FileInputStream fileIn = new FileInputStream("assets/" + filename);
             ObjectInputStream objectIn = new ObjectInputStream(fileIn);
             HashMap<String, HashSet<String>> hashMap = (HashMap<String, HashSet<String>>) objectIn.readObject();
             objectIn.close();
