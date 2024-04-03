@@ -232,6 +232,8 @@ public class Barrel extends UnicastRemoteObject implements IBarrel, Runnable {
         }
     }
 
+    // TODO: se um barrel novo for adicionado, ele deve receber o índice invertido dos outros barrels
+
     public static void main(String[] args) {
         String multicastAddress = "230.0.0.0";
         int multicastPort = 12345;

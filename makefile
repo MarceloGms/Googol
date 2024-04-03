@@ -14,10 +14,9 @@ gw: compile
 brl:
 	@java -cp bin Barrel
 
-THREADS = 5
 # run downloaders
 dl:
-	@java -cp bin;lib/* Downloader $(THREADS)
+	@java -cp bin;lib/* Downloader
 # for linux
 # @java -cp bin:lib/* Downloader
 
