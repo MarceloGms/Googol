@@ -4,6 +4,7 @@ import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
 import java.io.BufferedReader;
+import java.io.FileInputStream;
 import java.io.FileReader;
 import java.io.IOException;
 import java.net.DatagramPacket;
@@ -18,6 +19,7 @@ import java.rmi.RemoteException;
 import java.rmi.server.UnicastRemoteObject;
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.Properties;
 import java.util.Queue;
 import java.util.Set;
 import java.util.StringTokenizer;
@@ -26,7 +28,7 @@ import java.util.concurrent.Semaphore;
 import java.text.Normalizer;
 
 public class Downloader extends UnicastRemoteObject implements IDownloader, Runnable {
-  private final int MAX_THREADS;
+  private int MAX_THREADS;
   private IGatewayDl gw;
   private Set<String> stopWords;
   private ArrayList<String> ulrsList;
@@ -40,9 +42,8 @@ public class Downloader extends UnicastRemoteObject implements IDownloader, Runn
   private Boolean running;
   private DatagramSocket multicastSocket;
 
-  Downloader(int MAX_THREADS, String multicastAddress, int multicastPort) throws RemoteException {
+  Downloader(String multicastAddress, int multicastPort) throws RemoteException {
     super();
-    this.MAX_THREADS = MAX_THREADS;
     this.multicastAddress = multicastAddress;
     this.multicastPort = multicastPort;
     stopWords = new HashSet<>();
@@ -50,6 +51,7 @@ public class Downloader extends UnicastRemoteObject implements IDownloader, Runn
     queueSemaphore = new Semaphore(0);
     queue = new ConcurrentLinkedQueue<>();
     running = true;
+    loadConfig();
 
     // Connect to the Gateway
     try {
@@ -234,22 +236,22 @@ public class Downloader extends UnicastRemoteObject implements IDownloader, Runn
             .toLowerCase();
   }
 
-  public static void main(String args[]) {
-
-    // Get number of threads
-    int n = 0;
-    try {
-      n = Integer.parseInt(args[0]);
-    } catch (NumberFormatException e) {
-      System.err.println("Invalid number of threads: " + args[0]);
-      System.exit(1);
+  private void loadConfig() {
+    Properties prop = new Properties();
+    try (FileInputStream input = new FileInputStream("assets/config.properties")) {
+      prop.load(input);
+      MAX_THREADS = Integer.parseInt(prop.getProperty("downloaders"));
+    } catch (IOException ex) {
+      ex.printStackTrace();
     }
+  }
 
+  public static void main(String args[]) {
     String multicastAddress = "230.0.0.0"; 
     int multicastPort = 12345; 
     
     try {
-      new Downloader(n, multicastAddress, multicastPort);
+      new Downloader(multicastAddress, multicastPort);
     } catch (RemoteException e) {
       e.printStackTrace();
     }

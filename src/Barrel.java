@@ -19,11 +19,11 @@ import java.text.Normalizer;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
+import java.util.Properties;
 
 public class Barrel extends UnicastRemoteObject implements IBarrel, Runnable {
     private int id;
     private IGatewayBrl gw;
-    private static final int N_BARRELS = 3;
     private final int multicastPort;
     private final String multicastAddress;
     private HashMap<String, HashSet<String>> invertedIndex;
@@ -221,11 +221,24 @@ public class Barrel extends UnicastRemoteObject implements IBarrel, Runnable {
         pageLinkCounts.put(url, num + 1);
     }
 
+    private static int loadConfig() {
+        Properties prop = new Properties();
+        try (FileInputStream input = new FileInputStream("assets/config.properties")) {
+            prop.load(input);
+            return Integer.parseInt(prop.getProperty("barrels"));
+        } catch (IOException ex) {
+            ex.printStackTrace();
+            return 0;
+        }
+    }
+
     public static void main(String[] args) {
         String multicastAddress = "230.0.0.0";
         int multicastPort = 12345;
 
-        for (int i = 1; i <= N_BARRELS; i++) {
+        int nBarrels = loadConfig();
+
+        for (int i = 1; i <= nBarrels; i++) {
             try {
                 Barrel barrel = new Barrel(multicastAddress, multicastPort, i);
                 Thread thread = new Thread(barrel);

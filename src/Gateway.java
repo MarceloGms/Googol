@@ -1,3 +1,4 @@
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -6,6 +7,7 @@ import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.server.UnicastRemoteObject;
 import java.util.ArrayList;
+import java.util.Properties;
 import java.util.Random;
 import java.util.logging.FileHandler;
 import java.util.logging.Level;
@@ -18,7 +20,7 @@ public class Gateway extends UnicastRemoteObject implements IGatewayCli, IGatewa
   private ArrayList<IBarrel> barrels;
   private IDownloader downloaderManager;
   private int brlCount;
-  private final int N_BARRELS = 3;
+  private int N_BARRELS;
 
   Gateway() throws RemoteException {
     super();
@@ -26,6 +28,7 @@ public class Gateway extends UnicastRemoteObject implements IGatewayCli, IGatewa
     barrels = new ArrayList<>();
     downloaderManager = null;
     brlCount = 0;
+    loadConfig();
 
     try {
       FileHandler fileHandler = new FileHandler("gateway.log");
@@ -143,6 +146,16 @@ public class Gateway extends UnicastRemoteObject implements IGatewayCli, IGatewa
         return true;
     } catch (Exception e) {
         return false;
+    }
+  }
+
+  private void loadConfig() {
+    Properties prop = new Properties();
+    try (FileInputStream input = new FileInputStream("assets/config.properties")) {
+      prop.load(input);
+      N_BARRELS = Integer.parseInt(prop.getProperty("barrels"));
+    } catch (IOException ex) {
+      ex.printStackTrace();
     }
   }
 
