@@ -156,7 +156,7 @@ public class Client extends UnicastRemoteObject implements IClient {
   }
 
   private void displayResults(String result, Scanner sc) {
-    String[] resultsArray = result.split("\\|");
+    String[] resultsArray = result.split("\\*");
     int totalPages = (resultsArray.length + 10 - 1) / 10;
     int currentPage = 0;
 

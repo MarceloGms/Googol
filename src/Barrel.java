@@ -17,6 +17,7 @@ import java.rmi.RemoteException;
 import java.rmi.server.UnicastRemoteObject;
 import java.text.Normalizer;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
@@ -79,15 +80,21 @@ public class Barrel extends UnicastRemoteObject implements IBarrel, Runnable {
             sep_word = normalizeWord(sep_word);
             for(String key : invertedIndex.keySet()){
                 if(key.equals(sep_word)){
-                    links_search.add(invertedIndex.get(key).toString());
+                    for (String link : invertedIndex.get(key)) {
+                        links_search.add(link);
+                    }
+                    break;
                 }
             }
         }
-
-        List<String> ord_links_search = new ArrayList<>(linkedPage.keySet());
-        ord_links_search.sort((link1, link2) -> linkedPage.get(link2).size() - linkedPage.get(link1).size());
+        // Ordena links_search em ordem decrescente com base no número de valores associados a cada URL
+        links_search.sort(Comparator.comparingInt(url -> {
+            HashSet<String> values = linkedPage.get(url);
+            return values != null ? values.size() : 0;
+        }).reversed());
+        
         String string_links = "";
-        for (String link : ord_links_search) {
+        for (String link : links_search) {
             for (Map.Entry<String, LinkedHashSet<String>> entry : title_citation.entrySet()) {
                 String key = entry.getKey();
                 if (key.equals(link)) {
@@ -98,7 +105,7 @@ public class Barrel extends UnicastRemoteObject implements IBarrel, Runnable {
                     break;
                 }
             }
-            string_links += link + "\n|";
+            string_links += link + "\n*";
         }
         return string_links;
     }
