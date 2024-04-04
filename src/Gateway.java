@@ -114,6 +114,17 @@ public class Gateway extends UnicastRemoteObject implements IGatewayCli, IGatewa
     }
   }
 
+  @Override
+  public String getTop10Searches() throws RemoteException {
+    Random rand = new Random();
+    if (brlCount == 0) {
+      LOGGER.warning("No barrels available\n");
+      return "No barrels available";
+    }
+    int idx = rand.nextInt(barrels.size());
+    return barrels.get(idx).getTop10Searches();
+  }
+
   // Gateway-Downloader methods
   @Override
   public void AddDM(IDownloader dm) throws RemoteException {

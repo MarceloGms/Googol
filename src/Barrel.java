@@ -83,6 +83,17 @@ public class Barrel extends UnicastRemoteObject implements IBarrel, Runnable {
         return "Sublink1\nSublink2\nSublink3\nSublink4\nSublink5\nSublink6\nSublink7\nSublink8\nSublink9\nSublink10\nSublink11\nSublink12\nSublink13\nSublink14\nSublink15\nSublink16\nSublink17\nSublink18\nSublink19\nSublink20\n";
     }
 
+    @Override
+    public String getTop10Searches() throws RemoteException {
+        // TODO: obter as 10 pesquisas mais frequentes
+        return "Top1\nTop2\nTop3\nTop4\nTop5\nTop6\nTop7\nTop8\nTop9\nTop10\n";
+    }
+
+    @Override
+    public int getId() throws RemoteException {
+        return id;
+    }
+
     public void run() {
         // Connect to the Gateway
         try {

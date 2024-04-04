@@ -259,7 +259,7 @@ public class Client extends UnicastRemoteObject implements IClient {
           case 0: // Back
             return; // Return to the main menu
           case 1: // Top 10 Searches
-            top10Searches();
+            top10Searches(sc);
             break;
           case 2: // List of Active Barrels
             listActiveBarrels();
@@ -284,8 +284,45 @@ public class Client extends UnicastRemoteObject implements IClient {
     System.out.println("0. Back\n" + ANSI_RESET);
   }
 
-  private void top10Searches() {
-    // TODO: Implement top 10 searches
+  private void top10Searches(Scanner sc) {
+    while (true) {
+      String result = null;
+      try {
+        result = gw.getTop10Searches();
+        if (result != null) {
+          if (result.equals("No barrels available")) {
+            System.out.println(ANSI_RED + "No barrels available.\n" + ANSI_RESET);
+            return;
+          } else {
+            String[] resultsArray = result.split("\\n");
+
+            System.out.println(ANSI_YELLOW + "\nTop 10 Searches:" + ANSI_RESET);
+            for (int i = 0; i < resultsArray.length; i++) {
+              System.out.println(resultsArray[i]);
+            }
+
+            System.out.println(ANSI_CYAN + "Press 'r' to refresh or 'q' to quit:" + ANSI_RESET);
+            System.out.print(ANSI_GREEN + "> " + ANSI_RESET);
+            String input = sc.nextLine().toLowerCase();
+
+            if (input.equals("q")) {
+              break;
+            } else if (input.equals("r")) {
+              continue;
+            }
+            else {
+              System.out.println(ANSI_RED + "Invalid command. Please try again." + ANSI_RESET);
+            }
+          }
+        } else {
+          System.out.println(ANSI_RED + "No results found.\n" + ANSI_RESET);
+          return;
+        }
+      } catch (RemoteException e) {
+        System.out.println(ANSI_RED + "Error occurred during search.\n" + ANSI_RESET);
+        return;
+      }
+    }
   }
 
   private void listActiveBarrels() {

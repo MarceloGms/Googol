@@ -7,4 +7,5 @@ public interface IGatewayCli extends Remote{
   public void unsubscribe(IClient client) throws RemoteException;
   public String search(String s) throws RemoteException;
   public String findSubLinks(String s) throws RemoteException;
+  public String getTop10Searches() throws RemoteException;
 }
