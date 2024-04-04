@@ -125,6 +125,19 @@ public class Gateway extends UnicastRemoteObject implements IGatewayCli, IGatewa
     return barrels.get(idx).getTop10Searches();
   }
 
+  @Override
+  public String getActiveBarrels() throws RemoteException {
+    if (brlCount == 0) {
+      LOGGER.warning("No barrels available\n");
+      return "No barrels available";
+    }
+    String activeBarrels = "";
+    for (IBarrel b : barrels) {
+      activeBarrels += b.getId() + "\n";
+    }
+    return activeBarrels;
+  }
+
   // Gateway-Downloader methods
   @Override
   public void AddDM(IDownloader dm) throws RemoteException {
