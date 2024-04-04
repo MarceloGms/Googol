@@ -195,9 +195,9 @@ public class Downloader extends UnicastRemoteObject implements IDownloader, Runn
       StringTokenizer tokenizer = new StringTokenizer(text);
       while (tokenizer.hasMoreTokens()) {
         String word = tokenizer.nextToken();
-
+        
         // remove ponctuation
-        word = word.replaceAll("[^a-zA-Z0-9]", "");
+        word = word.replaceAll("\\p{Punct}", "");
         
         // skip stop words
         if (!isStopWord(word))
