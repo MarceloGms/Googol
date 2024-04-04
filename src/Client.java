@@ -111,13 +111,6 @@ public class Client extends UnicastRemoteObject implements IClient {
     }
   }
 
-  // normalize the word by removing accents
-    private String normalizeWord(String word) {
-        return Normalizer.normalize(word, Normalizer.Form.NFD)
-                .replaceAll("\\p{M}", "")
-                .toLowerCase();
-    }
-
   private void printMenu() {
     System.out.println(ANSI_CYAN + "Googol Search Engine" + ANSI_RESET);
     System.out.println(ANSI_BLUE + "1. Index URL");
@@ -143,8 +136,6 @@ public class Client extends UnicastRemoteObject implements IClient {
     System.out.println(ANSI_PURPLE + "Enter search query:" + ANSI_RESET);
     System.out.print(ANSI_GREEN + "> " + ANSI_RESET);
     String query = sc.nextLine();
-    normalizeWord(query);
-    query = query.replaceAll("\\p{Punct}", "");
     System.out.println();
     String result = null;
     try {
