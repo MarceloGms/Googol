@@ -1,6 +1,6 @@
 # compile java files
 compile:
-	@javac -cp lib/* src/*.java -d bin
+	@javac -cp lib/* -Xlint:unchecked src/*.java -d bin
 
 # run client
 cli:

@@ -206,7 +206,6 @@ public class Downloader extends UnicastRemoteObject implements IDownloader, Runn
 
     } catch (IOException e) {
       System.err.println("Error: Failed to extract content from URL. URL may be unreachable.");
-      e.printStackTrace();
     }
   }
 
