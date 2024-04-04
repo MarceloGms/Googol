@@ -150,25 +150,15 @@ public class Barrel extends UnicastRemoteObject implements IBarrel, Runnable {
                 
 
             }
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-
-    public void searchBarrel() {
-        /*
-        // Chamar o método para ler o HashMap do arquivo
-        HashMap<String, HashSet<String>> hashMap1 = readHashMapFromFile("../barrels/" + filename);
-
-        // Imprimir o conteúdo do HashMap
-        if (hashMap1 != null) {
-            for (String key : hashMap1.keySet()) {
-                System.out.println("Chave: " + key);
-                System.out.println("Valores: " + hashMap1.get(key));
+        } catch (Exception e) {
+            try {
+                System.out.println("Barrel " + id + " crashed.");
+                gw.rmvBrl(this, id);
+                gw.BrlMessage("Barrel " + id + " crashed.");
+            } catch (RemoteException e1) {
+                System.out.println("Error removing barrel from Gateway.");
             }
-        } else {
-            System.out.println("O arquivo está vazio ou ocorreu um erro ao ler o arquivo.");
-        }*/
+        }
     }
 
     // Save hashmap to file

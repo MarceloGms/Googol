@@ -119,6 +119,21 @@ public class Gateway extends UnicastRemoteObject implements IGatewayCli, IGatewa
     brlCount++;
   }
 
+  @Override
+  public void rmvBrl(IBarrel brl, int id) throws RemoteException {
+    if (barrels.remove(brl)) {
+      LOGGER.info("Barrel removed: " + id + "\n");
+      brlCount--;
+    } else {
+      LOGGER.warning("Barrel not found\n");
+    }
+  }
+
+  @Override
+  public void BrlMessage(String s) throws RemoteException {
+    LOGGER.warning(s + "\n");
+  }
+
   private void shutdown() {
     try {
       // send shutdown message to all clients and downloader manager
