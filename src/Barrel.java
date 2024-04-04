@@ -65,8 +65,12 @@ public class Barrel extends UnicastRemoteObject implements IBarrel, Runnable {
 
     @Override
     public String search(String s) throws RemoteException {
-        s = s.replaceAll("[^a-zA-Z0-9]", "");
-        s = normalizeWord(s);
+        String sep_words[] = s.split(" ");
+        for (String sep_word : sep_words) {
+            //sep_word = sep_word.replaceAll("\\p{Punct}", "");  
+            //s = normalizeWord(s);          
+            System.out.println(sep_word);
+        }
         // TODO: pesquisar no índice invertido
         // mandar resultados ordenados por numero de links
         // cada resultado deve ter o título, a citação e link
@@ -141,7 +145,8 @@ public class Barrel extends UnicastRemoteObject implements IBarrel, Runnable {
                     addToUrls(url, link);
                 }
                 System.out.println(pageLinks);
-                saveHashMapToFile(invertedIndex, "Barrel" + id + ".dat");
+                saveHashMapToFile(invertedIndex, "Barrel" + id + "index.dat");
+                //saveHashMapToFile(pageLinks, "Barrel" + id + "pagelinks.dat");
                 
 
             }
@@ -174,6 +179,7 @@ public class Barrel extends UnicastRemoteObject implements IBarrel, Runnable {
         try {
             FileInputStream fileIn = new FileInputStream("assets/" + filename);
             ObjectInputStream objectIn = new ObjectInputStream(fileIn);
+            @SuppressWarnings("unchecked")
             HashMap<String, HashSet<String>> hashMap = (HashMap<String, HashSet<String>>) objectIn.readObject();
             objectIn.close();
             return hashMap;
