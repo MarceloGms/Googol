@@ -23,7 +23,6 @@ import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Properties;
 
 public class Barrel extends UnicastRemoteObject implements IBarrel, Runnable {

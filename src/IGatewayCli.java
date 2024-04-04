@@ -8,4 +8,5 @@ public interface IGatewayCli extends Remote{
   public String search(String s) throws RemoteException;
   public String findSubLinks(String s) throws RemoteException;
   public String getTop10Searches() throws RemoteException;
+  public String getActiveBarrels() throws RemoteException;
 }

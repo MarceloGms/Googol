@@ -205,7 +205,7 @@ public class Client extends UnicastRemoteObject implements IClient {
         System.out.println(ANSI_RED + "No results found.\n" + ANSI_RESET);
       }
     } catch (RemoteException e) {
-      System.out.println(ANSI_RED + "Error occurred during search.\n" + ANSI_RESET);
+      System.out.println(ANSI_RED + "Error occurred getting sub links.\n" + ANSI_RESET);
     }
   }
 
@@ -253,7 +253,7 @@ public class Client extends UnicastRemoteObject implements IClient {
             top10Searches(sc);
             break;
           case 2: // List of Active Barrels
-            listActiveBarrels();
+            listActiveBarrels(sc);
             break;
           default:
             System.out.println("Invalid input. Try again.\n");
@@ -311,14 +311,47 @@ public class Client extends UnicastRemoteObject implements IClient {
           return;
         }
       } catch (RemoteException e) {
-        System.out.println(ANSI_RED + "Error occurred during search.\n" + ANSI_RESET);
+        System.out.println(ANSI_RED + "Error occurred getting top10.\n" + ANSI_RESET);
         return;
       }
     }
   }
 
-  private void listActiveBarrels() {
-    // TODO: Implement list of active barrels
+  private void listActiveBarrels(Scanner sc) {
+    while (true) {
+      String result = null;
+      try {
+        result = gw.getActiveBarrels();
+        if (result.equals("No barrels available")) {
+          System.out.println(ANSI_RED + "No barrels available.\n" + ANSI_RESET);
+          return;
+        } else {
+          String[] resultsArray = result.split("\\n");
+
+          System.out.println(ANSI_YELLOW + "\nActive Barrels:" + ANSI_RESET);
+          for (int i = 0; i < resultsArray.length; i++) {
+            System.out.println(resultsArray[i]);
+          }
+          System.out.println();
+
+          System.out.println(ANSI_CYAN + "Press 'r' to refresh or 'q' to quit:" + ANSI_RESET);
+          System.out.print(ANSI_GREEN + "> " + ANSI_RESET);
+          String input = sc.nextLine().toLowerCase();
+
+          if (input.equals("q")) {
+            break;
+          } else if (input.equals("r")) {
+            continue;
+          }
+          else {
+            System.out.println(ANSI_RED + "Invalid command. Please try again." + ANSI_RESET);
+          }
+        }
+      } catch (RemoteException e) {
+        System.out.println(ANSI_RED + "Error occurred while trying to get active barrels.\n" + ANSI_RESET);
+        return;
+      }
+    }
   }
 
   public static void main(String[] args) {
