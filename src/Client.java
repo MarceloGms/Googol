@@ -25,7 +25,7 @@ public class Client extends UnicastRemoteObject implements IClient {
 
     // Connect to the Gateway
     try {
-      gw = (IGatewayCli) Naming.lookup("rmi://192.168.137.1:1099/gw");
+      gw = (IGatewayCli) Naming.lookup("rmi://localhost:1099/gw");
     } catch (NotBoundException e) {
       System.err.println(ANSI_RED + "Gateway not bound. Exiting program." + ANSI_RESET);
       System.exit(1);

@@ -55,7 +55,7 @@ public class Downloader extends UnicastRemoteObject implements IDownloader, Runn
 
     // Connect to the Gateway
     try {
-      gw = (IGatewayDl) Naming.lookup("rmi://192.168.137.1:1099/gw");
+      gw = (IGatewayDl) Naming.lookup("rmi://localhost:1099/gw");
       System.out.println("Connected to Gateway.");
     } catch (NotBoundException e) {
       System.err.println("Gateway not bound. Exiting program.");
