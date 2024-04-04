@@ -16,9 +16,13 @@ import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.rmi.server.UnicastRemoteObject;
 import java.text.Normalizer;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Properties;
 
 public class Barrel extends UnicastRemoteObject implements IBarrel, Runnable {
@@ -28,8 +32,10 @@ public class Barrel extends UnicastRemoteObject implements IBarrel, Runnable {
     private final String multicastAddress;
     private HashMap<String, HashSet<String>> invertedIndex;
     private boolean running;
-    private HashMap<String, LinkedHashSet<String>> pageLinks;
-    private HashMap<String, Integer> pageLinkCounts;
+    private HashMap<String, HashSet<String>> pageLinks;
+    private HashMap<String, HashSet<String>> linkedPage;
+    private HashMap<String, LinkedHashSet<String>> title_citation;
+
     private MulticastSocket multicastSocket;
 
     public Barrel(String multicastAddress, int multicastPort, int id) throws RemoteException {
@@ -39,7 +45,8 @@ public class Barrel extends UnicastRemoteObject implements IBarrel, Runnable {
         invertedIndex = new HashMap<>();
         running = true;
         pageLinks = new HashMap<>();
-        pageLinkCounts = new HashMap<>();
+        linkedPage = new HashMap<>();
+        title_citation = new HashMap<>();
         try {
             multicastSocket = new MulticastSocket(multicastPort);
         } catch (IOException e) {
@@ -66,15 +73,34 @@ public class Barrel extends UnicastRemoteObject implements IBarrel, Runnable {
     @Override
     public String search(String s) throws RemoteException {
         String sep_words[] = s.split(" ");
+        List<String> links_search = new ArrayList<>();
         for (String sep_word : sep_words) {
-            //sep_word = sep_word.replaceAll("\\p{Punct}", "");  
-            //s = normalizeWord(s);          
-            System.out.println(sep_word);
+            sep_word = sep_word.replaceAll("\\p{Punct}", "");  
+            sep_word = normalizeWord(sep_word);
+            for(String key : invertedIndex.keySet()){
+                if(key.equals(sep_word)){
+                    links_search.add(invertedIndex.get(key).toString());
+                }
+            }
         }
-        // TODO: pesquisar no índice invertido
-        // mandar resultados ordenados por numero de links
-        // cada resultado deve ter o título, a citação e link
-        return "Titulo1\nCitacao1\nlink1\n|Titulo2\nCitacao2\nlink2\n|Titulo3\nCitacao3\nlink3\n|Titulo4\nCitacao4\nlink4\n|Titulo5\nCitacao5\nlink5\n|Titulo6\nCitacao6\nlink6\n|Titulo7\nCitacao7\nlink7\n|Titulo8\nCitacao8\nlink8\n|Titulo9\nCitacao9\nlink9\n|Titulo10\nCitacao10\nlink10\n|Titulo11\nCitacao11\nlink11\n|Titulo12\nCitacao12\nlink12\n|Titulo13\nCitacao13\nlink13\n|Titulo14\nCitacao14\nlink14\n|Titulo15\nCitacao15\nlink15\n|Titulo16\nCitacao16\nlink16\n|Titulo17\nCitacao17\nlink17\n|Titulo18\nCitacao18\nlink18\n|Titulo19\nCitacao19\nlink19\n|Titulo20\nCitacao20\nlink20\n|";
+
+        List<String> ord_links_search = new ArrayList<>(linkedPage.keySet());
+        ord_links_search.sort((link1, link2) -> linkedPage.get(link2).size() - linkedPage.get(link1).size());
+        String string_links = "";
+        for (String link : ord_links_search) {
+            for (Map.Entry<String, LinkedHashSet<String>> entry : title_citation.entrySet()) {
+                String key = entry.getKey();
+                if (key.equals(link)) {
+                    HashSet<String> values = entry.getValue();
+                    for (String value : values) {
+                        string_links += value + "\n";
+                    }
+                    break;
+                }
+            }
+            string_links += link + "\n|";
+        }
+        return string_links;
     }
 
     public void run() {
@@ -130,23 +156,30 @@ public class Barrel extends UnicastRemoteObject implements IBarrel, Runnable {
                 String citation = parts[2].replace("Citation: ", "");
                 String keywordsString = parts[3].replace("Keywords: ", "").replace("[", "").replace("]", "");
                 String linksString = parts[4].replace("Links: ", "").replace("[", "").replace("]", "");
+
+                LinkedHashSet<String> info = title_citation.get(url);
+                if (info == null) {
+                    info = new LinkedHashSet<String>();
+                    title_citation.put(url, info);
+                }
+                info.add(title);
+                info.add(citation);
+
                 String[] keywords = keywordsString.split(", ");
                 for (String keyword : keywords) {
                     addToIndex(keyword, url);
                 }
 
                 String[] links = linksString.split(", ");
-                int linksCount = links.length;
-                LinkedHashSet<String> link_value = new LinkedHashSet<String>();
-                pageLinks.put(url, link_value);
-                link_value.add(String.valueOf(linksCount));
                 
                 for (String link : links) {
                     addToUrls(url, link);
                 }
-                System.out.println(pageLinks);
+
+                addToLinkedPage(url);
+
                 saveHashMapToFile(invertedIndex, "Barrel" + id + "index.dat");
-                //saveHashMapToFile(pageLinks, "Barrel" + id + "pagelinks.dat");
+                saveHashMapToFile(linkedPage, "Barrel" + id + "linkedPage.dat");
                 
 
             }
@@ -199,8 +232,26 @@ public class Barrel extends UnicastRemoteObject implements IBarrel, Runnable {
     }
 
     public void addToUrls(String url, String url_new) {
-        LinkedHashSet<String> links = pageLinks.get(url);
+        HashSet<String> links = pageLinks.get(url);
+        if (links == null) {
+            links = new HashSet<String>();
+            pageLinks.put(url, links);
+        }
         links.add(url_new);
+    }
+
+    public void addToLinkedPage(String url) {
+        for (String key : pageLinks.keySet()) {
+            HashSet<String> links = pageLinks.get(key);
+            if (links.contains(url)) {
+                HashSet<String> linked = linkedPage.get(url);
+                if (linked == null) {
+                    linked = new HashSet<String>();
+                    linkedPage.put(url, linked);
+                }
+                linked.add(key);
+            }
+        }
     }
 
     // normalize the word by removing accents
@@ -211,11 +262,6 @@ public class Barrel extends UnicastRemoteObject implements IBarrel, Runnable {
     }
     
     //FUNÇÕES AINDA NÃO USADAS
-
-    public void urlConnections(String url) {
-    	Integer num = pageLinkCounts.getOrDefault(url, 0);
-        pageLinkCounts.put(url, num + 1);
-    }
 
     private static int loadConfig() {
         Properties prop = new Properties();
