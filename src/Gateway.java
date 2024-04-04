@@ -107,8 +107,11 @@ public class Gateway extends UnicastRemoteObject implements IGatewayCli, IGatewa
   }
 
   @Override
-  public void DlMessage(String s) throws RemoteException {
-    LOGGER.info(s + "\n");
+  public void DlMessage(String s, String type) throws RemoteException {
+    if (type.equals("error"))
+      LOGGER.warning(s + "\n");
+    else
+      LOGGER.info(s + "\n");
   }
 
   // Gateway-Barrel methods
