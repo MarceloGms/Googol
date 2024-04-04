@@ -41,6 +41,7 @@ public class Downloader extends UnicastRemoteObject implements IDownloader, Runn
   private final int multicastPort;
   private Boolean running;
   private DatagramSocket multicastSocket;
+  private final Object multicastLock;
 
   Downloader(String multicastAddress, int multicastPort) throws RemoteException {
     super();
@@ -51,6 +52,7 @@ public class Downloader extends UnicastRemoteObject implements IDownloader, Runn
     queueSemaphore = new Semaphore(0);
     queue = new ConcurrentLinkedQueue<>();
     running = true;
+    multicastLock = new Object();
     loadConfig();
 
     // Connect to the Gateway
@@ -89,7 +91,7 @@ public class Downloader extends UnicastRemoteObject implements IDownloader, Runn
       try {
         if (queue.isEmpty()) {
           System.out.println(Thread.currentThread().getName() + ": No URLs to download. Waiting...");
-          gw.DlMessage(Thread.currentThread().getName() + ": No URLs to download. Waiting...");
+          gw.DlMessage(Thread.currentThread().getName() + ": No URLs to download. Waiting...", "info");
         }
         queueSemaphore.acquire();
       } catch (InterruptedException e) {
@@ -103,18 +105,11 @@ public class Downloader extends UnicastRemoteObject implements IDownloader, Runn
       }
       System.out.println(Thread.currentThread().getName() + ": Downloading URL: " + url);
       try {
-        gw.DlMessage(Thread.currentThread().getName() + ": Downloading URL: " + url);
+        gw.DlMessage(Thread.currentThread().getName() + ": Downloading URL: " + url, "info");
       } catch (RemoteException e) {
         e.printStackTrace();
       }
       extract(url);
-      System.out.println(Thread.currentThread().getName() + ": Download complete for URL: " + url);
-      System.out.println("--------------------------------------");
-      try {
-          gw.DlMessage(Thread.currentThread().getName() + ": Download complete for URL: " + url);
-      } catch (RemoteException e) {
-          e.printStackTrace();
-      }
 
       try {
           // Prepare the information to be sent
@@ -126,13 +121,14 @@ public class Downloader extends UnicastRemoteObject implements IDownloader, Runn
           DatagramPacket packet = new DatagramPacket(data, data.length, group, multicastPort);
 
           // Send the DatagramPacket via multicast
-          try {
-            multicastSocket.send(packet);
-          } catch (SocketException e) {
-            return;
-          }
-
-          System.out.println("Information sent successfully via multicast.");
+          synchronized (multicastLock) {
+            try {
+                multicastSocket.send(packet);
+            } catch (SocketException e) {
+                return;
+            }
+            System.out.println("Information sent successfully via multicast.");
+        }
       } catch (IOException e) {
           System.out.println("IO: " + e.getMessage());
       }
@@ -141,7 +137,7 @@ public class Downloader extends UnicastRemoteObject implements IDownloader, Runn
 
   @Override
   public void download(String url) throws RemoteException {
-    queue.add(url);
+    queue.offer(url);
     queueSemaphore.release();
     // gw.DlMessage("URL added to the DL queue: " + url);
   }
@@ -169,7 +165,8 @@ public class Downloader extends UnicastRemoteObject implements IDownloader, Runn
       try {
         doc = Jsoup.connect(url).get();
       } catch (IllegalArgumentException e) {
-        System.err.println("Error: Invalid URL. Exiting program.");
+        System.err.println("Error: Invalid URL.");
+        gw.DlMessage("Error: Invalid URL.", "error");
         return;
       }
       
@@ -185,7 +182,7 @@ public class Downloader extends UnicastRemoteObject implements IDownloader, Runn
       for (Element link : links) {
         String linkUrl = link.attr("abs:href");
         ulrsList.add(linkUrl);
-        queue.add(linkUrl);
+        queue.offer(linkUrl);
         queueSemaphore.release();
         // gw.DlMessage("URL added to the DL queue: " + linkUrl);
       }
@@ -203,9 +200,21 @@ public class Downloader extends UnicastRemoteObject implements IDownloader, Runn
         if (!isStopWord(word))
           keywords.add(normalizeWord(word));
       }
+      System.out.println(Thread.currentThread().getName() + ": Download complete for URL: " + url);
+      System.out.println("--------------------------------------");
+      try {
+          gw.DlMessage(Thread.currentThread().getName() + ": Download complete for URL: " + url, "info");
+      } catch (RemoteException e) {
+          e.printStackTrace();
+      }
 
     } catch (IOException e) {
       System.err.println("Error: Failed to extract content from URL. URL may be unreachable.");
+      try {
+        gw.DlMessage("Error: Failed to extract content from URL. URL may be unreachable.", "error");
+      } catch (RemoteException e1) {
+        e1.printStackTrace();
+      }
     }
   }
 

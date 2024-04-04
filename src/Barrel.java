@@ -103,6 +103,23 @@ public class Barrel extends UnicastRemoteObject implements IBarrel, Runnable {
         return string_links;
     }
 
+    @Override
+    public String findSubLinks(String s) throws RemoteException {
+        // TODO: pesquisar os links que apontam para a página s
+        return "Sublink1\nSublink2\nSublink3\nSublink4\nSublink5\nSublink6\nSublink7\nSublink8\nSublink9\nSublink10\nSublink11\nSublink12\nSublink13\nSublink14\nSublink15\nSublink16\nSublink17\nSublink18\nSublink19\nSublink20\n";
+    }
+
+    @Override
+    public String getTop10Searches() throws RemoteException {
+        // TODO: obter as 10 pesquisas mais frequentes
+        return "Top1\nTop2\nTop3\nTop4\nTop5\nTop6\nTop7\nTop8\nTop9\nTop10\n";
+    }
+
+    @Override
+    public int getId() throws RemoteException {
+        return id;
+    }
+
     public void run() {
         // Connect to the Gateway
         try {
@@ -196,29 +213,33 @@ public class Barrel extends UnicastRemoteObject implements IBarrel, Runnable {
 
     // Save hashmap to file
     private static void saveHashMapToFile(HashMap<String, HashSet<String>> hashMap, String filename) {
-        try {
-            FileOutputStream fileOut = new FileOutputStream("assets/" + filename);
-            ObjectOutputStream objectOut = new ObjectOutputStream(fileOut);
-            objectOut.writeObject(hashMap);
-            objectOut.close();
-            
-        } catch (Exception ex) {
-            ex.printStackTrace();
+        synchronized (getLockObject(filename)) {
+            try {
+                FileOutputStream fileOut = new FileOutputStream("assets/" + filename);
+                ObjectOutputStream objectOut = new ObjectOutputStream(fileOut);
+                objectOut.writeObject(hashMap);
+                objectOut.close();
+                
+            } catch (Exception ex) {
+                ex.printStackTrace();
+            }
         }
     }
 
     // Read hashmap from file
     private static HashMap<String, HashSet<String>> readHashMapFromFile(String filename) {
-        try {
-            FileInputStream fileIn = new FileInputStream("assets/" + filename);
-            ObjectInputStream objectIn = new ObjectInputStream(fileIn);
-            @SuppressWarnings("unchecked")
-            HashMap<String, HashSet<String>> hashMap = (HashMap<String, HashSet<String>>) objectIn.readObject();
-            objectIn.close();
-            return hashMap;
-        } catch (Exception ex) {
-            ex.printStackTrace();
-            return null;
+        synchronized (getLockObject(filename)) {
+            try {
+                FileInputStream fileIn = new FileInputStream("assets/" + filename);
+                ObjectInputStream objectIn = new ObjectInputStream(fileIn);
+                @SuppressWarnings("unchecked")
+                HashMap<String, HashSet<String>> hashMap = (HashMap<String, HashSet<String>>) objectIn.readObject();
+                objectIn.close();
+                return hashMap;
+            } catch (Exception ex) {
+                ex.printStackTrace();
+                return null;
+            }
         }
     }
 
@@ -272,6 +293,10 @@ public class Barrel extends UnicastRemoteObject implements IBarrel, Runnable {
             ex.printStackTrace();
             return 0;
         }
+    }
+
+    private static Object getLockObject(String filename) {
+        return filename.hashCode();
     }
 
     // TODO: se um barrel novo for adicionado, ele sincroniza-se com os outros barrels (EXTRA)

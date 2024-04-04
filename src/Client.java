@@ -89,7 +89,10 @@ public class Client extends UnicastRemoteObject implements IClient {
           case 2: // Search
             search(sc);
             break;
-          case 3: // Consult Admin Pages
+          case 3: // Find sub-links
+            findSubLinks(sc);
+            break;
+          case 4: // Consult Admin Pages
             handleAdminPages(sc);
             break;
           default:
@@ -112,7 +115,8 @@ public class Client extends UnicastRemoteObject implements IClient {
     System.out.println(ANSI_CYAN + "Googol Search Engine" + ANSI_RESET);
     System.out.println(ANSI_BLUE + "1. Index URL");
     System.out.println("2. Search");
-    System.out.println("3. Consult Admin Pages");
+    System.out.println("3. Find sub-links");
+    System.out.println("4. Consult Admin Pages");
     System.out.println("0. Exit\n" + ANSI_RESET);
   }
 
@@ -179,6 +183,60 @@ public class Client extends UnicastRemoteObject implements IClient {
     }
   }
 
+  private void findSubLinks(Scanner sc) {
+    System.out.println(ANSI_PURPLE + "Enter URL to find sub-links:" + ANSI_RESET);
+    System.out.print(ANSI_GREEN + "> " + ANSI_RESET);
+    String url = sc.nextLine();
+    System.out.println();
+    String result = null;
+    try {
+      result = gw.findSubLinks(url);
+      if (result != null) {
+        if (result.equals("No barrels available")) {
+          System.out.println(ANSI_RED + "No barrels available.\n" + ANSI_RESET);
+          return;
+        } else if (result.equals("Invalid URL.")) {
+          System.out.println(ANSI_RED + "Invalid URL.\n" + ANSI_RESET);
+          return;
+        } else {
+          displaySubLinks(result, sc);
+        }
+      } else {
+        System.out.println(ANSI_RED + "No results found.\n" + ANSI_RESET);
+      }
+    } catch (RemoteException e) {
+      System.out.println(ANSI_RED + "Error occurred during search.\n" + ANSI_RESET);
+    }
+  }
+
+  private void displaySubLinks(String result, Scanner sc) {
+    String[] resultsArray = result.split("\\n");
+    int totalPages = (resultsArray.length + 10 - 1) / 10;
+    int currentPage = 0;
+
+    while (true) {
+      System.out.println(ANSI_YELLOW + "\nSub-links:" + ANSI_RESET);
+      for (int i = currentPage * 10; i < Math.min((currentPage + 1) * 10, resultsArray.length); i++) {
+        System.out.println(resultsArray[i]);
+      }
+
+      System.out.println(ANSI_BLUE + "\nPage " + (currentPage + 1) + " of " + totalPages + ANSI_RESET);
+      System.out.println(ANSI_CYAN + "Press 'n' for next page, 'p' for previous page, or 'q' to quit:" + ANSI_RESET);
+      System.out.print(ANSI_GREEN + "> " + ANSI_RESET);
+      String input = sc.nextLine().toLowerCase();
+
+      if (input.equals("q")) {
+        break;
+      } else if (input.equals("n")) {
+        currentPage = (currentPage + 1) % totalPages;
+      } else if (input.equals("p")) {
+        currentPage = (currentPage - 1 + totalPages) % totalPages;
+      } else {
+        System.out.println(ANSI_RED + "Invalid command. Please try again." + ANSI_RESET);
+      }
+    }
+  }
+
   private void handleAdminPages(Scanner sc) {
     int admInp = -1;
     while (true) {
@@ -192,7 +250,7 @@ public class Client extends UnicastRemoteObject implements IClient {
           case 0: // Back
             return; // Return to the main menu
           case 1: // Top 10 Searches
-            top10Searches();
+            top10Searches(sc);
             break;
           case 2: // List of Active Barrels
             listActiveBarrels();
@@ -217,8 +275,46 @@ public class Client extends UnicastRemoteObject implements IClient {
     System.out.println("0. Back\n" + ANSI_RESET);
   }
 
-  private void top10Searches() {
-    // TODO: Implement top 10 searches
+  private void top10Searches(Scanner sc) {
+    while (true) {
+      String result = null;
+      try {
+        result = gw.getTop10Searches();
+        if (result != null) {
+          if (result.equals("No barrels available")) {
+            System.out.println(ANSI_RED + "No barrels available.\n" + ANSI_RESET);
+            return;
+          } else {
+            String[] resultsArray = result.split("\\n");
+
+            System.out.println(ANSI_YELLOW + "\nTop 10 Searches:" + ANSI_RESET);
+            for (int i = 0; i < resultsArray.length; i++) {
+              System.out.println(resultsArray[i]);
+            }
+            System.out.println();
+
+            System.out.println(ANSI_CYAN + "Press 'r' to refresh or 'q' to quit:" + ANSI_RESET);
+            System.out.print(ANSI_GREEN + "> " + ANSI_RESET);
+            String input = sc.nextLine().toLowerCase();
+
+            if (input.equals("q")) {
+              break;
+            } else if (input.equals("r")) {
+              continue;
+            }
+            else {
+              System.out.println(ANSI_RED + "Invalid command. Please try again." + ANSI_RESET);
+            }
+          }
+        } else {
+          System.out.println(ANSI_RED + "No results found.\n" + ANSI_RESET);
+          return;
+        }
+      } catch (RemoteException e) {
+        System.out.println(ANSI_RED + "Error occurred during search.\n" + ANSI_RESET);
+        return;
+      }
+    }
   }
 
   private void listActiveBarrels() {

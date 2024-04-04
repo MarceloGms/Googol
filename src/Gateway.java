@@ -99,6 +99,32 @@ public class Gateway extends UnicastRemoteObject implements IGatewayCli, IGatewa
     return barrels.get(idx).search(s);
   }
 
+  @Override
+  public String findSubLinks(String s) throws RemoteException {
+    if (!isValidURL(s)) {
+      return "Invalid URL.";
+    } else {
+      Random rand = new Random();
+      if (brlCount == 0) {
+        LOGGER.warning("No barrels available\n");
+        return "No barrels available";
+      }
+      int idx = rand.nextInt(barrels.size());
+      return barrels.get(idx).findSubLinks(s);
+    }
+  }
+
+  @Override
+  public String getTop10Searches() throws RemoteException {
+    Random rand = new Random();
+    if (brlCount == 0) {
+      LOGGER.warning("No barrels available\n");
+      return "No barrels available";
+    }
+    int idx = rand.nextInt(barrels.size());
+    return barrels.get(idx).getTop10Searches();
+  }
+
   // Gateway-Downloader methods
   @Override
   public void AddDM(IDownloader dm) throws RemoteException {
@@ -107,8 +133,11 @@ public class Gateway extends UnicastRemoteObject implements IGatewayCli, IGatewa
   }
 
   @Override
-  public void DlMessage(String s) throws RemoteException {
-    LOGGER.info(s + "\n");
+  public void DlMessage(String s, String type) throws RemoteException {
+    if (type.equals("error"))
+      LOGGER.warning(s + "\n");
+    else
+      LOGGER.info(s + "\n");
   }
 
   // Gateway-Barrel methods
