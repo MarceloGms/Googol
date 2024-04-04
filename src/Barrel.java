@@ -76,7 +76,7 @@ public class Barrel extends UnicastRemoteObject implements IBarrel, Runnable {
     public void run() {
         // Connect to the Gateway
         try {
-            gw = (IGatewayBrl) Naming.lookup("rmi://localhost:1099/gw");
+            gw = (IGatewayBrl) Naming.lookup("rmi://192.168.137.1:1099/gw");
             System.out.println("Barrel " + id + " connected to Gateway.");
         } catch (NotBoundException e) {
             System.err.println("Gateway not bound. Exiting program.");

@@ -43,7 +43,7 @@ public class Gateway extends UnicastRemoteObject implements IGatewayCli, IGatewa
       LOGGER.info("Gateway starting...\n");
       LocateRegistry.createRegistry(1099);
       LOGGER.info("RMI registry created...\n");
-      Naming.rebind("rmi://localhost:1099/gw", this);
+      Naming.rebind("rmi://192.168.137.1:1099/gw", this);
       LOGGER.info("Gateway bound to RMI registry...\n");
     } catch (RemoteException | MalformedURLException e) {
       LOGGER.log(Level.SEVERE, "Exception occurred: ", e);
