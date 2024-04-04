@@ -300,6 +300,7 @@ public class Client extends UnicastRemoteObject implements IClient {
             for (int i = 0; i < resultsArray.length; i++) {
               System.out.println(resultsArray[i]);
             }
+            System.out.println();
 
             System.out.println(ANSI_CYAN + "Press 'r' to refresh or 'q' to quit:" + ANSI_RESET);
             System.out.print(ANSI_GREEN + "> " + ANSI_RESET);
