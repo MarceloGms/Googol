@@ -99,6 +99,21 @@ public class Gateway extends UnicastRemoteObject implements IGatewayCli, IGatewa
     return barrels.get(idx).search(s);
   }
 
+  @Override
+  public String findSubLinks(String s) throws RemoteException {
+    if (!isValidURL(s)) {
+      return "Invalid URL.";
+    } else {
+      Random rand = new Random();
+      if (brlCount == 0) {
+        LOGGER.warning("No barrels available\n");
+        return "No barrels available";
+      }
+      int idx = rand.nextInt(barrels.size());
+      return barrels.get(idx).findSubLinks(s);
+    }
+  }
+
   // Gateway-Downloader methods
   @Override
   public void AddDM(IDownloader dm) throws RemoteException {

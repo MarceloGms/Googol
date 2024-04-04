@@ -77,6 +77,12 @@ public class Barrel extends UnicastRemoteObject implements IBarrel, Runnable {
         return "Titulo1\nCitacao1\nlink1\n|Titulo2\nCitacao2\nlink2\n|Titulo3\nCitacao3\nlink3\n|Titulo4\nCitacao4\nlink4\n|Titulo5\nCitacao5\nlink5\n|Titulo6\nCitacao6\nlink6\n|Titulo7\nCitacao7\nlink7\n|Titulo8\nCitacao8\nlink8\n|Titulo9\nCitacao9\nlink9\n|Titulo10\nCitacao10\nlink10\n|Titulo11\nCitacao11\nlink11\n|Titulo12\nCitacao12\nlink12\n|Titulo13\nCitacao13\nlink13\n|Titulo14\nCitacao14\nlink14\n|Titulo15\nCitacao15\nlink15\n|Titulo16\nCitacao16\nlink16\n|Titulo17\nCitacao17\nlink17\n|Titulo18\nCitacao18\nlink18\n|Titulo19\nCitacao19\nlink19\n|Titulo20\nCitacao20\nlink20\n|";
     }
 
+    @Override
+    public String findSubLinks(String s) throws RemoteException {
+        // TODO: pesquisar os links que apontam para a página s
+        return "Sublink1\nSublink2\nSublink3\nSublink4\nSublink5\nSublink6\nSublink7\nSublink8\nSublink9\nSublink10\nSublink11\nSublink12\nSublink13\nSublink14\nSublink15\nSublink16\nSublink17\nSublink18\nSublink19\nSublink20\n";
+    }
+
     public void run() {
         // Connect to the Gateway
         try {
