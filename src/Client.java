@@ -1,12 +1,14 @@
+import java.io.FileInputStream;
+import java.io.IOException;
 import java.net.MalformedURLException;
 import java.rmi.Naming;
 import java.rmi.NoSuchObjectException;
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.rmi.server.UnicastRemoteObject;
-import java.text.Normalizer;
 import java.util.InputMismatchException;
 import java.util.NoSuchElementException;
+import java.util.Properties;
 import java.util.Scanner;
 
 public class Client extends UnicastRemoteObject implements IClient {
@@ -19,13 +21,15 @@ public class Client extends UnicastRemoteObject implements IClient {
   public static final String ANSI_CYAN = "\u001B[36m";
 
   private IGatewayCli gw;
+  private String SERVER_IP_ADDRESS;
 
   Client() throws RemoteException{
     super();
-
+    loadConfig();
+    
     // Connect to the Gateway
     try {
-      gw = (IGatewayCli) Naming.lookup("rmi://localhost:1099/gw");
+      gw = (IGatewayCli) Naming.lookup("rmi://" + SERVER_IP_ADDRESS + ":1099/gw");
     } catch (NotBoundException e) {
       System.err.println(ANSI_RED + "Gateway not bound. Exiting program." + ANSI_RESET);
       System.exit(1);
@@ -351,6 +355,16 @@ public class Client extends UnicastRemoteObject implements IClient {
         System.out.println(ANSI_RED + "Error occurred while trying to get active barrels.\n" + ANSI_RESET);
         return;
       }
+    }
+  }
+
+  private void loadConfig() {
+    Properties prop = new Properties();
+    try (FileInputStream input = new FileInputStream("assets/config.properties")) {
+      prop.load(input);
+      SERVER_IP_ADDRESS = prop.getProperty("server_ip");
+    } catch (IOException ex) {
+      ex.printStackTrace();
     }
   }
 
