@@ -1,5 +1,7 @@
+import java.io.BufferedReader;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.FileReader;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
@@ -24,10 +26,12 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
 
 public class Barrel extends UnicastRemoteObject implements IBarrel, Runnable {
     private int id;
     private IGatewayBrl gw;
+    private Set<String> stopWords;
     private final int multicastPort;
     private final String multicastAddress;
     private HashMap<String, HashSet<String>> invertedIndex;
@@ -35,7 +39,6 @@ public class Barrel extends UnicastRemoteObject implements IBarrel, Runnable {
     private HashMap<String, HashSet<String>> pageLinks;
     private HashMap<String, HashSet<String>> linkedPage;
     private HashMap<String, LinkedHashSet<String>> title_citation;
-
     private MulticastSocket multicastSocket;
 
     public Barrel(String multicastAddress, int multicastPort, int id) throws RemoteException {
@@ -47,6 +50,8 @@ public class Barrel extends UnicastRemoteObject implements IBarrel, Runnable {
         pageLinks = new HashMap<>();
         linkedPage = new HashMap<>();
         title_citation = new HashMap<>();
+        stopWords = new HashSet<>();
+        loadStopWords("assets/stop_words.txt");
         try {
             multicastSocket = new MulticastSocket(multicastPort);
         } catch (IOException e) {
@@ -72,20 +77,56 @@ public class Barrel extends UnicastRemoteObject implements IBarrel, Runnable {
 
     @Override
     public String search(String s) throws RemoteException {
-        String sep_words[] = s.split(" ");
-        List<String> links_search = new ArrayList<>();
+        String sep_words_aux[] = s.split(" ");
+        ArrayList<String> sep_words = new ArrayList<>();
+        for (String sep_word : sep_words_aux) {
+            sep_word = sep_word.replaceAll("\\p{Punct}", "");
+            if (!isStopWord(sep_word)) {
+                normalizeWord(sep_word);
+                sep_words.add(sep_word);
+                HashMap<String, Integer> searchCount = readHashMapFromFileTop10("top10.dat");
+                if(searchCount == null){
+                    searchCount = new HashMap<>();
+                }
+                if(!searchCount.containsKey(sep_word)){
+                    searchCount.put(sep_word, 1);
+                }else{
+                    searchCount.put(sep_word, searchCount.get(sep_word) + 1);
+                }
+                saveHashMapToFileTop10(searchCount, "top10.dat");
+                System.out.println(searchCount);
+            }
+        }
+        
+        List<String> links_search = new ArrayList<>(), links_search_aux = new ArrayList<>(), linksToRemove = new ArrayList<>();;
+        int words_count = 0;
         for (String sep_word : sep_words) {
-            sep_word = sep_word.replaceAll("\\p{Punct}", "");  
-            sep_word = normalizeWord(sep_word);
             for(String key : invertedIndex.keySet()){
                 if(key.equals(sep_word)){
-                    for (String link : invertedIndex.get(key)) {
-                        links_search.add(link);
+                    words_count++;
+                    for (String link : invertedIndex.get(sep_word)) {
+                        links_search_aux.add(link);
                     }
+                    if(!links_search.isEmpty()){
+                        for (String link : links_search) {
+                            if(!links_search_aux.contains(link)){
+                                linksToRemove.add(link);
+                            }
+                        }
+                        links_search.removeAll(linksToRemove);
+                    }else{
+                        links_search.addAll(links_search_aux);
+                    }
+                    links_search_aux.clear();
                     break;
                 }
             }
         }
+
+        if (words_count != sep_words.size()) {
+            return "";
+        }
+
         // Ordena links_search em ordem decrescente com base no número de valores associados a cada URL
         links_search.sort(Comparator.comparingInt(url -> {
             HashSet<String> values = linkedPage.get(url);
@@ -111,19 +152,51 @@ public class Barrel extends UnicastRemoteObject implements IBarrel, Runnable {
 
     @Override
     public String findSubLinks(String s) throws RemoteException {
-        // TODO: pesquisar os links que apontam para a página s
-        return "Sublink1\nSublink2\nSublink3\nSublink4\nSublink5\nSublink6\nSublink7\nSublink8\nSublink9\nSublink10\nSublink11\nSublink12\nSublink13\nSublink14\nSublink15\nSublink16\nSublink17\nSublink18\nSublink19\nSublink20\n";
+        HashSet<String> links = linkedPage.get(s);
+        String string_links = "";
+        if (links != null) {
+            for (String link : links) {
+                string_links += link + "\n";
+            }
+        }
+        return string_links;
     }
 
     @Override
     public String getTop10Searches() throws RemoteException {
-        // TODO: obter as 10 pesquisas mais frequentes
-        return "Top1\nTop2\nTop3\nTop4\nTop5\nTop6\nTop7\nTop8\nTop9\nTop10\n";
+        String string_links = "";
+        HashMap<String, Integer> searchCount = readHashMapFromFileTop10("top10.dat");
+        List<Map.Entry<String, Integer>> entryList = new ArrayList<>(searchCount.entrySet());
+        Comparator<Map.Entry<String, Integer>> comparator = Comparator.comparingInt(Map.Entry::getValue);
+        entryList.sort(comparator.reversed());
+        for (int i = 0; i < entryList.size(); i++) {
+            string_links += entryList.get(i).getKey() + " - " + entryList.get(i).getValue() + "\n";
+        }
+        return string_links;
     }
 
     @Override
     public int getId() throws RemoteException {
         return id;
+    }
+
+    private boolean isStopWord(String word) {
+        return stopWords.contains(normalizeWord(word));
+    }
+
+    private void loadStopWords(String filename) {
+        try (BufferedReader reader = new BufferedReader(new FileReader(filename))) {
+        String line;
+        while ((line = reader.readLine()) != null) {
+            String word = line.trim().toLowerCase();
+            if (!word.isEmpty()) {
+            stopWords.add(normalizeWord(word));
+            }
+        }
+        } catch (IOException e) {
+        System.err.println("Error: Failed to load stop words file. Exiting program.");
+        System.exit(1);
+        }
     }
 
     public void run() {
@@ -240,6 +313,35 @@ public class Barrel extends UnicastRemoteObject implements IBarrel, Runnable {
                 ObjectInputStream objectIn = new ObjectInputStream(fileIn);
                 @SuppressWarnings("unchecked")
                 HashMap<String, HashSet<String>> hashMap = (HashMap<String, HashSet<String>>) objectIn.readObject();
+                objectIn.close();
+                return hashMap;
+            } catch (Exception ex) {
+                ex.printStackTrace();
+                return null;
+            }
+        }
+    }
+
+    private static void saveHashMapToFileTop10(HashMap<String, Integer> hashMap, String filename) {
+        synchronized (getLockObject(filename)) {
+            try {
+                FileOutputStream fileOut = new FileOutputStream("assets/" + filename);
+                ObjectOutputStream objectOut = new ObjectOutputStream(fileOut);
+                objectOut.writeObject(hashMap);
+                objectOut.close();
+            } catch (IOException ex) {
+                ex.printStackTrace();
+            }
+        }
+    }
+
+    private static HashMap<String, Integer> readHashMapFromFileTop10(String filename) {
+        synchronized (getLockObject(filename)) {
+            try {
+                FileInputStream fileIn = new FileInputStream("assets/" + filename);
+                ObjectInputStream objectIn = new ObjectInputStream(fileIn);
+                @SuppressWarnings("unchecked")
+                HashMap<String, Integer> hashMap = (HashMap<String, Integer>) objectIn.readObject();
                 objectIn.close();
                 return hashMap;
             } catch (Exception ex) {
