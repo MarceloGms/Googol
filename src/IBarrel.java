@@ -6,6 +6,6 @@ public interface IBarrel extends Remote {
   public String search(String s) throws RemoteException;
   public String findSubLinks(String s) throws RemoteException;
   public String getTop10Searches() throws RemoteException;
-  public int getId() throws RemoteException;
+  public String getId() throws RemoteException;
 
 }

@@ -51,11 +51,6 @@ public class Gateway extends UnicastRemoteObject implements IGatewayCli, IGatewa
       LOGGER.log(Level.SEVERE, "Exception occurred: ", e);
       throw new RuntimeException(e);
     }
-
-    // handle SIGINT
-    Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-      shutdown();
-    }));
   }
   
   // Gateway-Client methods
@@ -135,6 +130,7 @@ public class Gateway extends UnicastRemoteObject implements IGatewayCli, IGatewa
     }
     String activeBarrels = "";
     for (IBarrel b : barrels) {
+      System.out.println(b.getId() + "\n");
       activeBarrels += b.getId() + "\n";
     }
     return activeBarrels;
@@ -142,9 +138,14 @@ public class Gateway extends UnicastRemoteObject implements IGatewayCli, IGatewa
 
   // Gateway-Downloader methods
   @Override
-  public void AddDM(IDownloader dm) throws RemoteException {
+  public Boolean AddDM(IDownloader dm) throws RemoteException {
+    if (downloaderManager != null) {
+      LOGGER.warning("Downloader Manager already active\n");
+      return false;
+    }
     downloaderManager = dm;
     LOGGER.info("Downloader Manager active\n");
+    return true;
   }
 
   @Override
@@ -155,16 +156,26 @@ public class Gateway extends UnicastRemoteObject implements IGatewayCli, IGatewa
       LOGGER.info(s + "\n");
   }
 
+  @Override
+  public void RmvDM() throws RemoteException {
+    if (downloaderManager != null) {
+      downloaderManager = null;
+      LOGGER.info("Downloader Manager removed\n");
+    } else {
+      LOGGER.warning("Downloader Manager not found\n");
+    }
+  }
+
   // Gateway-Barrel methods
   @Override
-  public void AddBrl(IBarrel brl, int id) throws RemoteException {
+  public void AddBrl(IBarrel brl, String id) throws RemoteException {
     barrels.add(brl);
     LOGGER.info("Barrel added: " + id + "\n");
     brlCount++;
   }
 
   @Override
-  public void rmvBrl(IBarrel brl, int id) throws RemoteException {
+  public void rmvBrl(IBarrel brl, String id) throws RemoteException {
     if (barrels.remove(brl)) {
       LOGGER.info("Barrel removed: " + id + "\n");
       brlCount--;
@@ -180,18 +191,19 @@ public class Gateway extends UnicastRemoteObject implements IGatewayCli, IGatewa
 
   private void shutdown() {
     try {
-      // send shutdown message to all clients and downloader manager
+      LOGGER.info("Gateway shutting down...\n");
+      // send shutdown message to all clients, barrels and downloader manager
+      if (downloaderManager != null) {
+        downloaderManager.send("Gateway shutting down.");
+      }
       for (IClient c : clients) {
         c.printOnClient("Gateway shutting down.");
       }
-      if (downloaderManager != null)
-        downloaderManager.send("Gateway shutting down.");
       for (IBarrel b : barrels) {
         b.send("Gateway shutting down.");
       }
       Naming.unbind("rmi://" + SERVER_IP_ADDRESS + ":1099/gw");
       UnicastRemoteObject.unexportObject(this, true);
-      System.out.println("Gateway shutting down...\n");
     } catch (Exception e) {
       LOGGER.log(Level.SEVERE, "Error occurred during shutdown: ", e);
     }
@@ -219,7 +231,12 @@ public class Gateway extends UnicastRemoteObject implements IGatewayCli, IGatewa
 
   public static void main(String[] args) {
     try {
-      new Gateway();
+      Gateway gateway = new Gateway();
+
+      // handle SIGINT
+      Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+        gateway.shutdown();
+      }));
     } catch (RemoteException e) {
       LOGGER.log(Level.SEVERE, "Exception occurred: ", e);
       throw new RuntimeException(e);

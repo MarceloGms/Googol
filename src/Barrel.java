@@ -27,9 +27,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
+import java.util.UUID;
 
 public class Barrel extends UnicastRemoteObject implements IBarrel, Runnable {
-    private int id;
+    private String id;
     private IGatewayBrl gw;
     private Set<String> stopWords;
     private final int multicastPort;
@@ -45,7 +46,7 @@ public class Barrel extends UnicastRemoteObject implements IBarrel, Runnable {
     public Barrel(String multicastAddress, int multicastPort) throws RemoteException {
         this.multicastAddress = multicastAddress;
         this.multicastPort = multicastPort;
-        id = this.hashCode();
+        id = UUID.randomUUID().toString();
         invertedIndex = new HashMap<>();
         running = true;
         pageLinks = new HashMap<>();
@@ -58,6 +59,10 @@ public class Barrel extends UnicastRemoteObject implements IBarrel, Runnable {
         } catch (IOException e) {
             e.printStackTrace();
         }
+        // handle SIGINT
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            shutdown();
+        }));
     }
 
     @Override
@@ -177,7 +182,7 @@ public class Barrel extends UnicastRemoteObject implements IBarrel, Runnable {
     }
 
     @Override
-    public int getId() throws RemoteException {
+    public String getId() throws RemoteException {
         return id;
     }
 
@@ -405,6 +410,22 @@ public class Barrel extends UnicastRemoteObject implements IBarrel, Runnable {
 
     private static Object getLockObject(String filename) {
         return filename.hashCode();
+    }
+
+    private void shutdown() {
+        try {
+            if (multicastSocket != null) {
+                multicastSocket.close();
+            }
+            System.out.println("Barrel " + id + " shutting down...\n");
+            // Notify the Gateway about the shutdown
+            if (gw != null) {
+                gw.rmvBrl(this, id);
+                gw.BrlMessage("Barrel " + id + " shutting down.");
+            }
+        } catch (RemoteException e) {
+            e.printStackTrace();
+        }
     }
 
     // TODO: se um barrel novo for adicionado, ele sincroniza-se com os outros barrels (EXTRA)

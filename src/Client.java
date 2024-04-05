@@ -334,7 +334,7 @@ public class Client extends UnicastRemoteObject implements IClient {
 
           System.out.println(ANSI_YELLOW + "\nActive Barrels:" + ANSI_RESET);
           for (int i = 0; i < resultsArray.length; i++) {
-            System.out.println(resultsArray[i]);
+            System.out.println("Barrel ID: " + resultsArray[i]);
           }
           System.out.println();
 

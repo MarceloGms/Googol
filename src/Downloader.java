@@ -12,6 +12,7 @@ import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.MalformedURLException;
 import java.net.SocketException;
+import java.rmi.ConnectException;
 import java.rmi.Naming;
 import java.rmi.NoSuchObjectException;
 import java.rmi.NotBoundException;
@@ -71,7 +72,11 @@ public class Downloader extends UnicastRemoteObject implements IDownloader, Runn
       System.exit(1);
     }
 
-    gw.AddDM(this);
+    if (!gw.AddDM(this)) {
+      System.err.println("Error binding Downloader to Gateway. Exiting program.");
+      System.exit(1);
+    }
+
     System.out.println("Downloader bound to Gateway.");
 
     try {
@@ -80,6 +85,11 @@ public class Downloader extends UnicastRemoteObject implements IDownloader, Runn
       System.err.println("Error creating multicast socket: " + e.getMessage());
       System.exit(1);
     }
+
+    // handle SIGINT
+    Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+      shutdown();
+    }));
 
     for (int i = 1; i <= MAX_THREADS; i++) {
       Thread thread = new Thread(this, Integer.toString(i));
@@ -111,7 +121,6 @@ public class Downloader extends UnicastRemoteObject implements IDownloader, Runn
         e.printStackTrace();
       }
       extract(url);
-
       try {
           // Prepare the information to be sent
           String resposta = "URL: " + url + "\nTitle: " + title + "\nCitation: " + citation + "\nKeywords: " + keywords + "\nLinks: " + ulrsList;
@@ -147,14 +156,13 @@ public class Downloader extends UnicastRemoteObject implements IDownloader, Runn
   @Override
   public void send(String s) throws RemoteException {
     if (s.equals("Gateway shutting down.")) {
+      System.out.println("Received shutdown signal from server. Shutting down...");
       running = false;
       multicastSocket.close();
-      System.out.println("Received shutdown signal from server. Shutting down...");
       try {
-          UnicastRemoteObject.unexportObject(this, true);
+        UnicastRemoteObject.unexportObject(this, true);
       } catch (NoSuchObjectException e) {
       }
-      System.exit(0);
     } else {
       System.out.println(s);
     }
@@ -168,6 +176,8 @@ public class Downloader extends UnicastRemoteObject implements IDownloader, Runn
       } catch (IllegalArgumentException e) {
         System.err.println("Error: Invalid URL.");
         gw.DlMessage("Error: Invalid URL.", "error");
+        return;
+      } catch (ConnectException e) {
         return;
       }
       
@@ -255,6 +265,22 @@ public class Downloader extends UnicastRemoteObject implements IDownloader, Runn
       ex.printStackTrace();
     }
   }
+
+  private void shutdown() {
+    try {
+        System.out.println("Downloader shutting down...");
+        running = false;
+        multicastSocket.close();
+        // Notify the Gateway about the shutdown
+        if (gw != null) {
+            gw.RmvDM();
+        }
+        // Unexport the object
+        UnicastRemoteObject.unexportObject(this, true);
+    } catch (RemoteException e) {
+        e.printStackTrace();
+    }
+}
 
   public static void main(String args[]) {
     String multicastAddress = "230.0.0.0"; 
