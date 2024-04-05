@@ -42,6 +42,7 @@ public class Downloader extends UnicastRemoteObject implements IDownloader, Runn
   private Boolean running;
   private DatagramSocket multicastSocket;
   private final Object multicastLock;
+  private String SERVER_IP_ADDRESS;
 
   Downloader(String multicastAddress, int multicastPort) throws RemoteException {
     super();
@@ -57,7 +58,7 @@ public class Downloader extends UnicastRemoteObject implements IDownloader, Runn
 
     // Connect to the Gateway
     try {
-      gw = (IGatewayDl) Naming.lookup("rmi://localhost:1099/gw");
+      gw = (IGatewayDl) Naming.lookup("rmi://" + SERVER_IP_ADDRESS + ":1099/gw");
       System.out.println("Connected to Gateway.");
     } catch (NotBoundException e) {
       System.err.println("Gateway not bound. Exiting program.");
@@ -249,6 +250,7 @@ public class Downloader extends UnicastRemoteObject implements IDownloader, Runn
     try (FileInputStream input = new FileInputStream("assets/config.properties")) {
       prop.load(input);
       MAX_THREADS = Integer.parseInt(prop.getProperty("downloaders"));
+      SERVER_IP_ADDRESS = prop.getProperty("server_ip");
     } catch (IOException ex) {
       ex.printStackTrace();
     }

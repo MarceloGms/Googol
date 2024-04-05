@@ -35,13 +35,13 @@ public class Barrel extends UnicastRemoteObject implements IBarrel, Runnable {
     private HashMap<String, HashSet<String>> pageLinks;
     private HashMap<String, HashSet<String>> linkedPage;
     private HashMap<String, LinkedHashSet<String>> title_citation;
-
     private MulticastSocket multicastSocket;
+    private static String SERVER_IP_ADDRESS;
 
-    public Barrel(String multicastAddress, int multicastPort, int id) throws RemoteException {
+    public Barrel(String multicastAddress, int multicastPort) throws RemoteException {
         this.multicastAddress = multicastAddress;
         this.multicastPort = multicastPort;
-        this.id = id;
+        id = this.hashCode();
         invertedIndex = new HashMap<>();
         running = true;
         pageLinks = new HashMap<>();
@@ -129,7 +129,7 @@ public class Barrel extends UnicastRemoteObject implements IBarrel, Runnable {
     public void run() {
         // Connect to the Gateway
         try {
-            gw = (IGatewayBrl) Naming.lookup("rmi://localhost:1099/gw");
+            gw = (IGatewayBrl) Naming.lookup("rmi://" + SERVER_IP_ADDRESS + ":1099/gw");
             System.out.println("Barrel " + id + " connected to Gateway.");
         } catch (NotBoundException e) {
             System.err.println("Gateway not bound. Exiting program.");
@@ -294,6 +294,7 @@ public class Barrel extends UnicastRemoteObject implements IBarrel, Runnable {
         Properties prop = new Properties();
         try (FileInputStream input = new FileInputStream("assets/config.properties")) {
             prop.load(input);
+            SERVER_IP_ADDRESS = prop.getProperty("server_ip");
             return Integer.parseInt(prop.getProperty("barrels"));
         } catch (IOException ex) {
             ex.printStackTrace();
@@ -315,7 +316,7 @@ public class Barrel extends UnicastRemoteObject implements IBarrel, Runnable {
 
         for (int i = 1; i <= nBarrels; i++) {
             try {
-                Barrel barrel = new Barrel(multicastAddress, multicastPort, i);
+                Barrel barrel = new Barrel(multicastAddress, multicastPort);
                 Thread thread = new Thread(barrel);
                 thread.start();
             } catch (RemoteException e) {

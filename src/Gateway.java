@@ -1,3 +1,4 @@
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -6,6 +7,7 @@ import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.server.UnicastRemoteObject;
 import java.util.ArrayList;
+import java.util.Properties;
 import java.util.Random;
 import java.util.logging.FileHandler;
 import java.util.logging.Level;
@@ -18,6 +20,7 @@ public class Gateway extends UnicastRemoteObject implements IGatewayCli, IGatewa
   private ArrayList<IBarrel> barrels;
   private IDownloader downloaderManager;
   private int brlCount;
+  private String SERVER_IP_ADDRESS;
 
   Gateway() throws RemoteException {
     super();
@@ -25,6 +28,7 @@ public class Gateway extends UnicastRemoteObject implements IGatewayCli, IGatewa
     barrels = new ArrayList<>();
     downloaderManager = null;
     brlCount = 0;
+    loadConfig();
 
     try {
       FileHandler fileHandler = new FileHandler("gateway.log");
@@ -35,12 +39,14 @@ public class Gateway extends UnicastRemoteObject implements IGatewayCli, IGatewa
       System.err.println("Failed to configure logger: " + e.getMessage());
     }
 
+    System.getProperties().put("java.security.policy", "policy.all");
+
     try {
       LOGGER.info("Gateway starting...\n");
       LocateRegistry.createRegistry(1099);
       LOGGER.info("RMI registry created...\n");
-      Naming.rebind("rmi://localhost:1099/gw", this);
-      LOGGER.info("Gateway bound to RMI registry...\n");
+      Naming.rebind("rmi://" + SERVER_IP_ADDRESS + ":1099/gw", this);
+      LOGGER.info("Gateway bound to RMI registry on ip: " + SERVER_IP_ADDRESS + "\n");
     } catch (RemoteException | MalformedURLException e) {
       LOGGER.log(Level.SEVERE, "Exception occurred: ", e);
       throw new RuntimeException(e);
@@ -178,13 +184,12 @@ public class Gateway extends UnicastRemoteObject implements IGatewayCli, IGatewa
       for (IClient c : clients) {
         c.printOnClient("Gateway shutting down.");
       }
-      // TODO: quando o gateway manda um url para o downloader dps se fizer CTRL+C no gateway, o downloader nao para ns pq
       if (downloaderManager != null)
         downloaderManager.send("Gateway shutting down.");
       for (IBarrel b : barrels) {
         b.send("Gateway shutting down.");
       }
-      Naming.unbind("rmi://localhost:1099/gw");
+      Naming.unbind("rmi://" + SERVER_IP_ADDRESS + ":1099/gw");
       UnicastRemoteObject.unexportObject(this, true);
       System.out.println("Gateway shutting down...\n");
     } catch (Exception e) {
@@ -199,6 +204,16 @@ public class Gateway extends UnicastRemoteObject implements IGatewayCli, IGatewa
         return true;
     } catch (Exception e) {
         return false;
+    }
+  }
+
+  private void loadConfig() {
+    Properties prop = new Properties();
+    try (FileInputStream input = new FileInputStream("assets/config.properties")) {
+      prop.load(input);
+      SERVER_IP_ADDRESS = prop.getProperty("server_ip");
+    } catch (IOException ex) {
+      ex.printStackTrace();
     }
   }
 
