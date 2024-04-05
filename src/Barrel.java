@@ -277,8 +277,6 @@ public class Barrel extends UnicastRemoteObject implements IBarrel, Runnable {
 
                 saveHashMapToFile(invertedIndex, "Barrel" + id + "index.dat");
                 saveHashMapToFile(linkedPage, "Barrel" + id + "linkedPage.dat");
-                
-
             }
         } catch (Exception e) {
             try {
