@@ -424,7 +424,7 @@ public class Barrel extends UnicastRemoteObject implements IBarrel, Runnable {
                 gw.BrlMessage("Barrel " + id + " shutting down.");
             }
         } catch (RemoteException e) {
-            e.printStackTrace();
+            System.out.println("Error occurred during shutdown: " + e.getMessage());
         }
     }
 

@@ -12,7 +12,6 @@ import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.MalformedURLException;
 import java.net.SocketException;
-import java.rmi.ConnectException;
 import java.rmi.Naming;
 import java.rmi.NoSuchObjectException;
 import java.rmi.NotBoundException;
@@ -55,92 +54,111 @@ public class Downloader extends UnicastRemoteObject implements IDownloader, Runn
     queue = new ConcurrentLinkedQueue<>();
     running = true;
     multicastLock = new Object();
-    loadConfig();
-
-    // Connect to the Gateway
     try {
-      gw = (IGatewayDl) Naming.lookup("rmi://" + SERVER_IP_ADDRESS + ":1099/gw");
-      System.out.println("Connected to Gateway.");
-    } catch (NotBoundException e) {
-      System.err.println("Gateway not bound. Exiting program.");
-      System.exit(1);
-    } catch (MalformedURLException e) {
-      System.err.println("Malformed URL. Exiting program.");
-      System.exit(1);
-    } catch (RemoteException e) {
-      System.err.println("Gateway down. Exiting program.");
-      System.exit(1);
-    }
+      loadConfig();
 
-    if (!gw.AddDM(this)) {
-      System.err.println("Error binding Downloader to Gateway. Exiting program.");
-      System.exit(1);
-    }
+      // Connect to the Gateway
+      try {
+        gw = (IGatewayDl) Naming.lookup("rmi://" + SERVER_IP_ADDRESS + ":1099/gw");
+        System.out.println("Connected to Gateway.");
+      } catch (NotBoundException e) {
+        System.err.println("Gateway not bound. Exiting program.");
+        System.exit(1);
+      } catch (MalformedURLException e) {
+        System.err.println("Malformed URL. Exiting program.");
+        System.exit(1);
+      } catch (RemoteException e) {
+        System.err.println("Gateway down. Exiting program.");
+        System.exit(1);
+      }
 
-    System.out.println("Downloader bound to Gateway.");
+      if (!gw.AddDM(this)) {
+        System.err.println("Error binding Downloader to Gateway. Exiting program.");
+        System.exit(1);
+      }
 
-    try {
-      multicastSocket = new DatagramSocket();
-    } catch (IOException e) {
-      System.err.println("Error creating multicast socket: " + e.getMessage());
-      System.exit(1);
-    }
+      System.out.println("Downloader bound to Gateway.");
 
-    // handle SIGINT
-    Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-      shutdown();
-    }));
+      try {
+        multicastSocket = new DatagramSocket();
+      } catch (IOException e) {
+        System.err.println("Error creating multicast socket: " + e.getMessage());
+        System.exit(1);
+      }
 
-    for (int i = 1; i <= MAX_THREADS; i++) {
-      Thread thread = new Thread(this, Integer.toString(i));
-      thread.start();
+      // handle SIGINT
+      Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+        shutdown();
+      }));
+
+      for (int i = 1; i <= MAX_THREADS; i++) {
+        Thread thread = new Thread(this, Integer.toString(i));
+        thread.start();
+      }
+    } catch (Exception e) {
+      System.err.println("Error occurred during initialization: " + e.getMessage());
+      if (gw != null) {
+        try {
+          gw.RmvDM();
+        } catch (RemoteException e1) {
+          System.out.println("Error removing Downloader from Gateway: " + e1.getMessage());
+        }
+      }
     }
   }
 
   public void run() {
     while (running) {
       try {
-        if (queue.isEmpty()) {
-          System.out.println(Thread.currentThread().getName() + ": No URLs to download. Waiting...");
-          gw.DlMessage(Thread.currentThread().getName() + ": No URLs to download. Waiting...", "info");
+        try {
+          if (queue.isEmpty()) {
+            System.out.println(Thread.currentThread().getName() + ": No URLs to download. Waiting...");
+            gw.DlMessage(Thread.currentThread().getName() + ": No URLs to download. Waiting...", "info");
+          }
+          queueSemaphore.acquire();
+        } catch (InterruptedException e) {
+          e.printStackTrace();
+        } catch (RemoteException e) {
+          e.printStackTrace();
         }
-        queueSemaphore.acquire();
-      } catch (InterruptedException e) {
-        e.printStackTrace();
-      } catch (RemoteException e) {
-        e.printStackTrace();
-      }
-      String url = queue.poll();
-      if (url == null) {
-        continue;
-      }
-      System.out.println(Thread.currentThread().getName() + ": Downloading URL: " + url);
-      try {
-        gw.DlMessage(Thread.currentThread().getName() + ": Downloading URL: " + url, "info");
-      } catch (RemoteException e) {
-        e.printStackTrace();
-      }
-      extract(url);
-      try {
-          // Prepare the information to be sent
-          String resposta = "URL: " + url + "\nTitle: " + title + "\nCitation: " + citation + "\nKeywords: " + keywords + "\nLinks: " + ulrsList;
-          byte[] data = resposta.getBytes();
-
-          // Create a DatagramPacket with the data and the multicast address and port
-          InetAddress group = InetAddress.getByName(multicastAddress);
-          DatagramPacket packet = new DatagramPacket(data, data.length, group, multicastPort);
-
-          // Send the DatagramPacket via multicast
-          synchronized (multicastLock) {
-            try {
-                multicastSocket.send(packet);
-            } catch (SocketException e) {
-                return;
-            }
-            System.out.println("Information sent successfully via multicast.");
+        String url = queue.poll();
+        if (url == null) {
+          continue;
         }
-      } catch (IOException e) {
-          System.out.println("IO: " + e.getMessage());
+        System.out.println(Thread.currentThread().getName() + ": Downloading URL: " + url);
+        try {
+          gw.DlMessage(Thread.currentThread().getName() + ": Downloading URL: " + url, "info");
+        } catch (RemoteException e) {
+          e.printStackTrace();
+        }
+        extract(url);
+        try {
+            // Prepare the information to be sent
+            String resposta = "URL: " + url + "\nTitle: " + title + "\nCitation: " + citation + "\nKeywords: " + keywords + "\nLinks: " + ulrsList;
+            byte[] data = resposta.getBytes();
+
+            // Create a DatagramPacket with the data and the multicast address and port
+            InetAddress group = InetAddress.getByName(multicastAddress);
+            DatagramPacket packet = new DatagramPacket(data, data.length, group, multicastPort);
+
+            // Send the DatagramPacket via multicast
+            synchronized (multicastLock) {
+              try {
+                  multicastSocket.send(packet);
+              } catch (SocketException e) {
+                  return;
+              }
+              System.out.println("Information sent successfully via multicast.");
+          }
+        } catch (IOException e) {
+            System.out.println("IO: " + e.getMessage());
+        }
+      } catch (RuntimeException e) {
+        System.out.println(Thread.currentThread().getName() + "crashed. Restarting...");
+        Thread newThread = new Thread(this);
+        newThread.setName(Thread.currentThread().getName());
+        newThread.start();
+        return;
       }
     }
   }
@@ -176,8 +194,6 @@ public class Downloader extends UnicastRemoteObject implements IDownloader, Runn
       } catch (IllegalArgumentException e) {
         System.err.println("Error: Invalid URL.");
         gw.DlMessage("Error: Invalid URL.", "error");
-        return;
-      } catch (ConnectException e) {
         return;
       }
       
@@ -278,9 +294,9 @@ public class Downloader extends UnicastRemoteObject implements IDownloader, Runn
         // Unexport the object
         UnicastRemoteObject.unexportObject(this, true);
     } catch (RemoteException e) {
-        e.printStackTrace();
+        System.out.println("Error occurred during shutdown: " + e.getMessage());
     }
-}
+  }
 
   public static void main(String args[]) {
     String multicastAddress = "230.0.0.0"; 
@@ -289,7 +305,7 @@ public class Downloader extends UnicastRemoteObject implements IDownloader, Runn
     try {
       new Downloader(multicastAddress, multicastPort);
     } catch (RemoteException e) {
-      e.printStackTrace();
+      System.out.println("Error creating Downloader: " + e.getMessage());
     }
   }
 }
