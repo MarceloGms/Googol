@@ -1,4 +1,5 @@
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.FileReader;
@@ -241,11 +242,13 @@ public class Barrel extends UnicastRemoteObject implements IBarrel, Runnable {
             multicastSocket.joinGroup(new InetSocketAddress(group, multicastPort), NetworkInterface.getByIndex(0));
 
             System.out.println("Barrel " + id + " listening for multicast messages...");
+            //invertedIndex = readHashMapFromFile("Barrel" + id + "index.dat");
+            //linkedPage = readHashMapFromFile("Barrel" + id + "linkedPage.dat");
 
             while (running) {
                 byte[] buffer = new byte[65507];  // Maximum size of a UDP packet
                 DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
-
+                
                 try {
                     multicastSocket.receive(packet);
                 } catch (SocketException e) {
@@ -312,17 +315,23 @@ public class Barrel extends UnicastRemoteObject implements IBarrel, Runnable {
         }
     }
 
-    // Read hashmap from file
     private static HashMap<String, HashSet<String>> readHashMapFromFile(String filename) {
         synchronized (getLockObject(filename)) {
+            File file = new File("assets/" + filename);
+            if (!file.exists()) {
+                System.out.println("File doesn't exist: " + filename);
+                return null;
+            }
+
             try {
-                FileInputStream fileIn = new FileInputStream("assets/" + filename);
+                FileInputStream fileIn = new FileInputStream(file);
                 ObjectInputStream objectIn = new ObjectInputStream(fileIn);
                 @SuppressWarnings("unchecked")
                 HashMap<String, HashSet<String>> hashMap = (HashMap<String, HashSet<String>>) objectIn.readObject();
                 objectIn.close();
                 return hashMap;
             } catch (Exception ex) {
+                ex.printStackTrace();
                 System.out.println("Error reading file: " + ex.getMessage());
                 return null;
             }
@@ -344,15 +353,21 @@ public class Barrel extends UnicastRemoteObject implements IBarrel, Runnable {
 
     private static HashMap<String, Integer> readHashMapFromFileTop10(String filename) {
         synchronized (getLockObject(filename)) {
-            try {
-                FileInputStream fileIn = new FileInputStream("assets/" + filename);
-                ObjectInputStream objectIn = new ObjectInputStream(fileIn);
-                @SuppressWarnings("unchecked")
-                HashMap<String, Integer> hashMap = (HashMap<String, Integer>) objectIn.readObject();
-                objectIn.close();
-                return hashMap;
-            } catch (Exception ex) {
-                System.out.println("Error reading file: " + ex.getMessage());
+            File file = new File("assets/" + filename);
+            if (file.exists()) {
+                try {
+                    FileInputStream fileIn = new FileInputStream(file);
+                    ObjectInputStream objectIn = new ObjectInputStream(fileIn);
+                    @SuppressWarnings("unchecked")
+                    HashMap<String, Integer> hashMap = (HashMap<String, Integer>) objectIn.readObject();
+                    objectIn.close();
+                    return hashMap;
+                } catch (Exception ex) {
+                    System.out.println("Error reading file: " + ex.getMessage());
+                    return null;
+                }
+            } else {
+                System.out.println("File doesn't exist: " + filename);
                 return null;
             }
         }
