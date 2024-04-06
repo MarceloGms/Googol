@@ -100,7 +100,6 @@ public class Barrel extends UnicastRemoteObject implements IBarrel, Runnable {
                     searchCount.put(sep_word, searchCount.get(sep_word) + 1);
                 }
                 saveHashMapToFileTop10(searchCount, "top10.dat");
-                System.out.println(searchCount);
             }
         }
         
@@ -222,8 +221,12 @@ public class Barrel extends UnicastRemoteObject implements IBarrel, Runnable {
             multicastSocket.joinGroup(new InetSocketAddress(group, multicastPort), NetworkInterface.getByIndex(0));
 
             System.out.println("Barrel " + id + " listening for multicast messages...");
-            //invertedIndex = readHashMapFromFile("Barrel" + id + "index.dat");
-            //linkedPage = readHashMapFromFile("Barrel" + id + "linkedPage.dat");
+            if (readHashMapFromFile("Barrel" + id + "index.dat") != null) {
+                invertedIndex = readHashMapFromFile("Barrel" + id + "index.dat");
+            }
+            if (readHashMapFromFile("Barrel" + id + "linkedPage.dat") != null) {
+                linkedPage = readHashMapFromFile("Barrel" + id + "linkedPage.dat");
+            }
 
             while (running) {
                 byte[] buffer = new byte[65507];  // Maximum size of a UDP packet
