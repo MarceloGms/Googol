@@ -241,7 +241,6 @@ public class Barrel extends UnicastRemoteObject implements IBarrel, Runnable {
                 String message = new String(packet.getData(), 0, packet.getLength());
                 //System.out.println("Barrel " + id + " received message from " + packet.getAddress().getHostAddress() + ": " + message);
                 String[] parts = message.split("\n");
-                System.out.println(message);
                 String url = parts[0].replace("URL: ", "");
                 String title = parts[1].replace("Title: ", "");
                 String citation = parts[2].replace("Citation: ", "");
@@ -262,7 +261,6 @@ public class Barrel extends UnicastRemoteObject implements IBarrel, Runnable {
                 }
 
                 String[] links = linksString.split(", ");
-                System.out.println(links);
                 for (String link : links) {
                     addToUrls(url, link);
                 }
@@ -291,9 +289,9 @@ public class Barrel extends UnicastRemoteObject implements IBarrel, Runnable {
                 ObjectOutputStream objectOut = new ObjectOutputStream(fileOut);
                 objectOut.writeObject(hashMap);
                 objectOut.close();
-                
             } catch (Exception ex) {
-                System.out.println("Error writing file: " + ex.getMessage());
+                //System.out.println("Error writing file: " + ex.getMessage());
+                return;
             }
         }
     }
@@ -302,10 +300,8 @@ public class Barrel extends UnicastRemoteObject implements IBarrel, Runnable {
         synchronized (getLockObject(filename)) {
             File file = new File("assets/" + filename);
             if (!file.exists()) {
-                System.out.println("File doesn't exist: " + filename);
                 return null;
             }
-
             try {
                 FileInputStream fileIn = new FileInputStream(file);
                 ObjectInputStream objectIn = new ObjectInputStream(fileIn);
@@ -314,8 +310,7 @@ public class Barrel extends UnicastRemoteObject implements IBarrel, Runnable {
                 objectIn.close();
                 return hashMap;
             } catch (Exception ex) {
-                ex.printStackTrace();
-                System.out.println("Error reading file: " + ex.getMessage());
+                //ex.printStackTrace(); //Ver o erro
                 return null;
             }
         }
@@ -329,7 +324,8 @@ public class Barrel extends UnicastRemoteObject implements IBarrel, Runnable {
                 objectOut.writeObject(hashMap);
                 objectOut.close();
             } catch (IOException ex) {
-                System.out.println("Error writing file: " + ex.getMessage());
+                return;
+                //System.out.println("Error writing file: " + ex.getMessage());
             }
         }
     }
@@ -337,20 +333,18 @@ public class Barrel extends UnicastRemoteObject implements IBarrel, Runnable {
     private static HashMap<String, Integer> readHashMapFromFileTop10(String filename) {
         synchronized (getLockObject(filename)) {
             File file = new File("assets/" + filename);
-            if (file.exists()) {
-                try {
-                    FileInputStream fileIn = new FileInputStream(file);
-                    ObjectInputStream objectIn = new ObjectInputStream(fileIn);
-                    @SuppressWarnings("unchecked")
-                    HashMap<String, Integer> hashMap = (HashMap<String, Integer>) objectIn.readObject();
-                    objectIn.close();
-                    return hashMap;
-                } catch (Exception ex) {
-                    System.out.println("Error reading file: " + ex.getMessage());
-                    return null;
-                }
-            } else {
-                System.out.println("File doesn't exist: " + filename);
+            if (!file.exists()) {
+                return null;
+            }
+            try {
+                FileInputStream fileIn = new FileInputStream(file);
+                ObjectInputStream objectIn = new ObjectInputStream(fileIn);
+                @SuppressWarnings("unchecked")
+                HashMap<String, Integer> hashMap = (HashMap<String, Integer>) objectIn.readObject();
+                objectIn.close();
+                return hashMap;
+            } catch (Exception ex) {
+                //System.out.println("Error reading file: " + ex.getMessage());
                 return null;
             }
         }
