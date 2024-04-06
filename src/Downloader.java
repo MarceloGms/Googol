@@ -31,6 +31,13 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.Semaphore;
 import java.text.Normalizer;
 
+/**
+ * The Downloader class implements the IDownloader interface and is responsible for downloading
+ * web pages, extracting information such as title, citation, links, and keywords, and then
+ * broadcasting this information via multicast to the barrels. It operates as a downloaders manager
+ * that creates threads to download web pages concurrently.
+ * The Downloaders Manager has a queue of URLs shared by all threads.
+ */
 public class Downloader extends UnicastRemoteObject implements IDownloader, Runnable {
   private int MAX_THREADS;
   private IGatewayDl gw;
@@ -48,6 +55,13 @@ public class Downloader extends UnicastRemoteObject implements IDownloader, Runn
   private final Object multicastLock;
   private String SERVER_IP_ADDRESS;
 
+  /**
+   * Constructs a Downloader object with the given multicast address and port.
+   * Connects to the Gateway and creates threads to download web pages concurrently.
+   * @param multicastAddress The multicast address to send information.
+   * @param multicastPort The multicast port to send information.
+   * @throws RemoteException If a communication-related exception occurs.
+   */
   Downloader(String multicastAddress, int multicastPort) throws RemoteException {
     super();
     this.multicastAddress = multicastAddress;
@@ -58,24 +72,16 @@ public class Downloader extends UnicastRemoteObject implements IDownloader, Runn
     queue = new ConcurrentLinkedQueue<>();
     running = true;
     multicastLock = new Object();
+
     try {
+      // Load configuration
       loadConfig();
-
       // Connect to the Gateway
-      try {
-        gw = (IGatewayDl) Naming.lookup("rmi://" + SERVER_IP_ADDRESS + ":1099/gw");
-        System.out.println("Connected to Gateway.");
-      } catch (NotBoundException e) {
-        System.err.println("Gateway not bound. Exiting program.");
-        System.exit(1);
-      } catch (MalformedURLException e) {
-        System.err.println("Malformed URL. Exiting program.");
-        System.exit(1);
-      } catch (RemoteException e) {
-        System.err.println("Gateway down. Exiting program.");
-        System.exit(1);
-      }
+      connectToGateway();
+      // Restore the queue from file if it exists
+      restoreQueueFromFile();
 
+      // Bind Downloaders Manager to Gateway
       if (!gw.AddDM(this)) {
         System.err.println("Error binding Downloader to Gateway. Exiting program.");
         System.exit(1);
@@ -83,6 +89,7 @@ public class Downloader extends UnicastRemoteObject implements IDownloader, Runn
 
       System.out.println("Downloader bound to Gateway.");
 
+      // Create a multicast socket
       try {
         multicastSocket = new DatagramSocket();
       } catch (IOException e) {
@@ -95,25 +102,9 @@ public class Downloader extends UnicastRemoteObject implements IDownloader, Runn
         shutdown();
       }));
 
-      // try to restore the queue from file
-      File queueFile = new File("assets/queue.ser");
-      if (queueFile.exists()) {
-          try (ObjectInputStream inputStream = new ObjectInputStream(new FileInputStream("assets/queue.ser"))) {
-              @SuppressWarnings("unchecked")
-              ArrayList<String> savedQueue = (ArrayList<String>) inputStream.readObject();
-              queue.addAll(savedQueue);
-              queueSemaphore.release(savedQueue.size()); // Release semaphore permits
-              System.out.println("Queue contents restored from file assets/queue.ser");
-              gw.DlMessage("Queue contents restored from file assets/queue.ser", "info");
-          } catch (IOException | ClassNotFoundException e) {
-              System.err.println("Error loading queue contents from file: " + e.getMessage());
-          }
-      }
+      // Create and start downloader threads
+      createDownloaderThreads();
 
-      for (int i = 1; i <= MAX_THREADS; i++) {
-        Thread thread = new Thread(this, Integer.toString(i));
-        thread.start();
-      }
     } catch (Exception e) {
       System.err.println("Error occurred during initialization: " + e.getMessage());
       if (gw != null) {
@@ -126,10 +117,58 @@ public class Downloader extends UnicastRemoteObject implements IDownloader, Runn
     }
   }
 
+  /**
+   * Connects to the Gateway using RMI.
+   */
+  private void connectToGateway() {
+    try {
+      gw = (IGatewayDl) Naming.lookup("rmi://" + SERVER_IP_ADDRESS + ":1099/gw");
+      System.out.println("Connected to Gateway.");
+    } catch (NotBoundException | MalformedURLException | RemoteException e) {
+      System.err.println("Error connecting to the Gateway: " + e.getMessage());
+      System.exit(1);
+    }
+  }
+
+  /**
+   * Creates and starts downloader threads.
+   */
+  private void createDownloaderThreads() {
+    for (int i = 1; i <= MAX_THREADS; i++) {
+      Thread thread = new Thread(this, Integer.toString(i));
+      thread.start();
+    }
+  }
+
+  /**
+   * Restores the queue from file if it exists.
+   */
+  private void restoreQueueFromFile() {
+    File queueFile = new File("assets/queue.ser");
+    if (queueFile.exists()) {
+      try (ObjectInputStream inputStream = new ObjectInputStream(new FileInputStream("assets/queue.ser"))) {
+        @SuppressWarnings("unchecked")
+        ArrayList<String> savedQueue = (ArrayList<String>) inputStream.readObject();
+        queue.addAll(savedQueue);
+        queueSemaphore.release(savedQueue.size()); // Release semaphore permits
+        System.out.println("Queue contents restored from file assets/queue.ser");
+        gw.DlMessage("Queue contents restored from file assets/queue.ser", "info");
+      } catch (IOException | ClassNotFoundException e) {
+        System.err.println("Error loading queue contents from file: " + e.getMessage());
+      }
+    }
+  }
+
+  /**
+   * Executes the downloader thread's main task.
+   * Downloads web pages concurrently and extracts information such as title, citation, links, and
+   * keywords. Broadcasts this information via multicast to the barrels.
+   */
   public void run() {
     while (running) {
       try {
         try {
+          // Wait for a URL to download
           if (queue.isEmpty()) {
             System.out.println(Thread.currentThread().getName() + ": No URLs to download. Waiting...");
             gw.DlMessage(Thread.currentThread().getName() + ": No URLs to download. Waiting...", "info");
@@ -150,6 +189,7 @@ public class Downloader extends UnicastRemoteObject implements IDownloader, Runn
           gw.DlMessage(Thread.currentThread().getName() + ": Downloading URL: " + url, "info");
         } catch (RemoteException e) {
         }
+        // Extract information from the URL
         extract(url);
         try {
             // Prepare the information to be sent
@@ -182,6 +222,11 @@ public class Downloader extends UnicastRemoteObject implements IDownloader, Runn
     }
   }
 
+  /**
+   * Adds a URL to the download queue.
+   * @param url The URL to download.
+   * @throws RemoteException If a communication-related exception occurs.
+   */
   @Override
   public void download(String url) throws RemoteException {
     queue.offer(url);
@@ -189,6 +234,12 @@ public class Downloader extends UnicastRemoteObject implements IDownloader, Runn
     // gw.DlMessage("URL added to the DL queue: " + url);
   }
 
+  /**
+   * Receives a message from the Gateway.
+   * If the message is a shutdown signal, shuts down the Downloader.
+   * @param s The message received.
+   * @throws RemoteException If a communication-related exception occurs.
+   */
   @Override
   public void send(String s) throws RemoteException {
     if (s.equals("Gateway shutting down.")) {
@@ -203,7 +254,11 @@ public class Downloader extends UnicastRemoteObject implements IDownloader, Runn
       System.out.println(s);
     }
   }
-
+  
+  /**
+   * Extracts information such as title, citation, links, and keywords from the given URL.
+   * @param url The URL to extract information from.
+   */
   private void extract(String url) {
     try {
       Document doc = null;
@@ -250,7 +305,6 @@ public class Downloader extends UnicastRemoteObject implements IDownloader, Runn
       try {
           gw.DlMessage(Thread.currentThread().getName() + ": Download complete for URL: " + url, "info");
       } catch (RemoteException e) {
-          System.out.println("Error sending message to Gateway: " + e.getMessage());
       }
 
     } catch (IOException e) {
@@ -258,11 +312,14 @@ public class Downloader extends UnicastRemoteObject implements IDownloader, Runn
       try {
         gw.DlMessage("Error: Failed to extract content from URL. URL may be unreachable.", "error");
       } catch (RemoteException e1) {
-        System.out.println("Error sending message to Gateway: " + e1.getMessage());
       }
     }
   }
 
+  /**
+   * Loads stop words from the specified file.
+   * @param filename The path to the file containing stop words.
+   */
   private void loadStopWords(String filename) {
     try (BufferedReader reader = new BufferedReader(new FileReader(filename))) {
       String line;
@@ -278,17 +335,29 @@ public class Downloader extends UnicastRemoteObject implements IDownloader, Runn
     }
   }
 
+  /**
+   * Checks if a word is a stop word.
+   * @param word The word to check.
+   * @return True if the word is a stop word, otherwise false.
+   */
   private boolean isStopWord(String word) {
     return stopWords.contains(normalizeWord(word));
   }
 
-  // normalize the word by removing accents
+  /**
+   * Normalizes a word by removing accents.
+   * @param word The word to normalize.
+   * @return The normalized word.
+   */
   private String normalizeWord(String word) {
     return Normalizer.normalize(word, Normalizer.Form.NFD)
             .replaceAll("\\p{M}", "")
             .toLowerCase();
   }
 
+  /**
+   * Loads configuration settings from the properties file.
+   */
   private void loadConfig() {
     Properties prop = new Properties();
     try (FileInputStream input = new FileInputStream("assets/config.properties")) {
@@ -301,6 +370,12 @@ public class Downloader extends UnicastRemoteObject implements IDownloader, Runn
     }
   }
 
+  /**
+   * Shuts down the downloader, releases resources, and notifies the Gateway.
+   * Saves the queue contents to a file in case of a crash.
+   * The Downloaders Manager can restore the queue from this file when it restarts.
+   * The Gateway deletes this file when it restarts.
+   */
   private void shutdown() {
     try {
         System.out.println("Downloader shutting down...");
@@ -323,6 +398,10 @@ public class Downloader extends UnicastRemoteObject implements IDownloader, Runn
     }
   }
 
+  /**
+   * The main method creates a Downloader object with the specified multicast address and port.
+   * @param args The command line arguments.
+   */
   public static void main(String args[]) {
     String multicastAddress = "230.0.0.0"; 
     int multicastPort = 12345; 

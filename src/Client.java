@@ -11,7 +11,13 @@ import java.util.NoSuchElementException;
 import java.util.Properties;
 import java.util.Scanner;
 
+/**
+ * The Client class represents a client application for interacting with the Googol Search Engine gateway.
+ * It implements the IClient interface to receive messages from the server.
+ */
 public class Client extends UnicastRemoteObject implements IClient {
+
+  // ANSI color codes for console output
   public static final String ANSI_RESET = "\u001B[0m";
   public static final String ANSI_RED = "\u001B[31m";
   public static final String ANSI_GREEN = "\u001B[32m";
@@ -20,9 +26,15 @@ public class Client extends UnicastRemoteObject implements IClient {
   public static final String ANSI_PURPLE = "\u001B[35m";
   public static final String ANSI_CYAN = "\u001B[36m";
 
+  // Remote gateway interface
   private IGatewayCli gw;
+  // Server IP address
   private String SERVER_IP_ADDRESS;
 
+  /**
+   * Constructs a new Client object and connects it to the Gateway via rmi.
+   * @throws RemoteException if there is an RMI-related error.
+   */
   Client() throws RemoteException{
     super();
     loadConfig();
@@ -38,6 +50,10 @@ public class Client extends UnicastRemoteObject implements IClient {
     run();
   }
 
+  /**
+   * Connects to the RMI gateway by looking up the server's remote object.
+   * If connection fails, it handles the error and exits the program.
+   */
   private void connectToGateway() {
     try {
         gw = (IGatewayCli) Naming.lookup("rmi://" + SERVER_IP_ADDRESS + ":1099/gw");
@@ -47,11 +63,21 @@ public class Client extends UnicastRemoteObject implements IClient {
     }
   }
 
+  /**
+   * Handles errors and exits the program.
+   * @param message the error message to display.
+   */
   private void handleErrorAndExit(String message) {
       System.err.println(ANSI_RED + message + " Exiting program." + ANSI_RESET);
       System.exit(1);
   }
 
+  /**
+   * Prints messages received from the server on the client console.
+   * If the message is a shutdown signal, it exits the program.
+   * @param s the message received from the server.
+   * @throws RemoteException if there is an RMI-related error.
+   */
   @Override
   public void printOnClient(String s) throws RemoteException {
     if (s.equals("Gateway shutting down.")) {
@@ -66,7 +92,11 @@ public class Client extends UnicastRemoteObject implements IClient {
     }
   }
 
-  public void run() throws RemoteException {
+  /**
+   * Runs the client application by displaying the menu and handling user input.
+   * If the user chooses to exit, it unsubscribes from the server and disconnects from the RMI Registry.
+   */
+  public void run() {
     // Menu
     Scanner sc = new Scanner(System.in);
     while (true) {
@@ -84,7 +114,7 @@ public class Client extends UnicastRemoteObject implements IClient {
               gw.unsubscribe(this);
               // Unexport the Client object to disconnect from the RMI Registry
               UnicastRemoteObject.unexportObject(this, true);
-            } catch (NoSuchObjectException e) {
+            } catch (RemoteException e) {
             }
             System.out.println(ANSI_YELLOW + "Exiting program..." + ANSI_RESET);
             return;
@@ -116,6 +146,9 @@ public class Client extends UnicastRemoteObject implements IClient {
     }
   }
 
+  /**
+   * Prints the main menu options.
+   */
   private void printMenu() {
     System.out.println(ANSI_CYAN + "Googol Search Engine" + ANSI_RESET);
     System.out.println(ANSI_BLUE + "1. Index URL");
@@ -125,6 +158,11 @@ public class Client extends UnicastRemoteObject implements IClient {
     System.out.println("0. Exit\n" + ANSI_RESET);
   }
 
+  /**
+   * Indexes a URL by sending it to the gateway for processing.
+   * @param sc the Scanner object for user input.
+   * @param gw the remote gateway object.
+   */
   private void indexURL(Scanner sc, IGatewayCli gw) {
     System.out.println(ANSI_PURPLE + "Enter URL to index:" + ANSI_RESET);
     System.out.print(ANSI_GREEN + "> " + ANSI_RESET);
@@ -137,6 +175,10 @@ public class Client extends UnicastRemoteObject implements IClient {
     }
   }
 
+  /**
+   * Searches for a query by calling the remote gateway method and displays the results.
+   * @param sc the Scanner object for user input.
+   */
   private void search(Scanner sc) {
     System.out.println(ANSI_PURPLE + "Enter search query:" + ANSI_RESET);
     System.out.print(ANSI_GREEN + "> " + ANSI_RESET);
@@ -160,17 +202,25 @@ public class Client extends UnicastRemoteObject implements IClient {
     }
   }
 
+  /**
+   * Displays the search results in pages of 10 results each.
+   * @param result the search results to display.
+   * @param sc the Scanner object for user input.
+   */
   private void displayResults(String result, Scanner sc) {
     String[] resultsArray = result.split("\\*");
+    // Calculate the total number of pages based on the number of search results
     int totalPages = (resultsArray.length + 10 - 1) / 10;
     int currentPage = 0;
 
     while (true) {
+      // Display the current page of search results
       System.out.println(ANSI_YELLOW + "\nSearch results:" + ANSI_RESET);
       for (int i = currentPage * 10; i < Math.min((currentPage + 1) * 10, resultsArray.length); i++) {
         System.out.println(resultsArray[i]);
       }
 
+      // Display the page number and total pages, and prompt for user input
       System.out.println(ANSI_BLUE + "\nPage " + (currentPage + 1) + " of " + totalPages + ANSI_RESET);
       System.out.println(ANSI_CYAN + "Press 'n' for next page, 'p' for previous page, or 'q' to quit:" + ANSI_RESET);
       System.out.print(ANSI_GREEN + "> " + ANSI_RESET);
@@ -188,6 +238,10 @@ public class Client extends UnicastRemoteObject implements IClient {
     }
   }
 
+  /**
+   * Finds sub-links for a given URL and displays the results.
+   * @param sc the Scanner object for user input.
+   */
   private void findSubLinks(Scanner sc) {
     System.out.println(ANSI_PURPLE + "Enter URL to find sub-links:" + ANSI_RESET);
     System.out.print(ANSI_GREEN + "> " + ANSI_RESET);
@@ -214,17 +268,25 @@ public class Client extends UnicastRemoteObject implements IClient {
     }
   }
 
+  /**
+   * Displays the sub-links in pages of 10 results each.
+   * @param result the sub-links to display.
+   * @param sc the Scanner object for user input.
+   */
   private void displaySubLinks(String result, Scanner sc) {
     String[] resultsArray = result.split("\\n");
+    // Calculate the total number of pages based on the number of sub-links
     int totalPages = (resultsArray.length + 10 - 1) / 10;
     int currentPage = 0;
 
     while (true) {
+      // Display the current page of sub-links
       System.out.println(ANSI_YELLOW + "\nSub-links:" + ANSI_RESET);
       for (int i = currentPage * 10; i < Math.min((currentPage + 1) * 10, resultsArray.length); i++) {
         System.out.println(resultsArray[i]);
       }
 
+      // Display the page number and total pages, and prompt for user input
       System.out.println(ANSI_BLUE + "\nPage " + (currentPage + 1) + " of " + totalPages + ANSI_RESET);
       System.out.println(ANSI_CYAN + "Press 'n' for next page, 'p' for previous page, or 'q' to quit:" + ANSI_RESET);
       System.out.print(ANSI_GREEN + "> " + ANSI_RESET);
@@ -242,6 +304,10 @@ public class Client extends UnicastRemoteObject implements IClient {
     }
   }
 
+  /**
+   * Handles the admin pages by displaying the admin menu and handling user input.
+   * @param sc the Scanner object for user input.
+   */
   private void handleAdminPages(Scanner sc) {
     int admInp = -1;
     while (true) {
@@ -273,6 +339,9 @@ public class Client extends UnicastRemoteObject implements IClient {
     }
   }
 
+  /**
+   * Prints the admin menu options.
+   */
   private void printAdminMenu() {
     System.out.println(ANSI_CYAN + "Admin Pages" + ANSI_RESET);
     System.out.println(ANSI_BLUE + "1. Top 10 Searches");
@@ -280,6 +349,10 @@ public class Client extends UnicastRemoteObject implements IClient {
     System.out.println("0. Back\n" + ANSI_RESET);
   }
 
+  /**
+   * Gets the top 10 searches by calling the remote gateway method and displays the results.
+   * @param sc the Scanner object for user input.
+   */
   private void top10Searches(Scanner sc) {
     while (true) {
       String result = null;
@@ -296,12 +369,14 @@ public class Client extends UnicastRemoteObject implements IClient {
           } else {
             String[] resultsArray = result.split("\\n");
 
+            // Display the top 10 searches
             System.out.println(ANSI_YELLOW + "\nTop 10 Searches:" + ANSI_RESET);
             for (int i = 0; i < resultsArray.length; i++) {
               System.out.println(resultsArray[i]);
             }
             System.out.println();
 
+            // Prompt the user to refresh the list or quit
             System.out.println(ANSI_CYAN + "Press 'r' to refresh or 'q' to quit:" + ANSI_RESET);
             System.out.print(ANSI_GREEN + "> " + ANSI_RESET);
             String input = sc.nextLine().toLowerCase();
@@ -326,6 +401,10 @@ public class Client extends UnicastRemoteObject implements IClient {
     }
   }
 
+  /**
+   * Gets the active barrels by calling the remote gateway method and displays the results.
+   * @param sc the Scanner object for user input.
+   */
   private void listActiveBarrels(Scanner sc) {
     while (true) {
       String result = null;
@@ -337,12 +416,14 @@ public class Client extends UnicastRemoteObject implements IClient {
         } else {
           String[] resultsArray = result.split("\\n");
 
+          // Display the active barrels
           System.out.println(ANSI_YELLOW + "\nActive Barrels:" + ANSI_RESET);
           for (int i = 0; i < resultsArray.length; i++) {
             System.out.println("Barrel ID: " + resultsArray[i]);
           }
           System.out.println();
 
+          // Prompt the user to refresh the list or quit
           System.out.println(ANSI_CYAN + "Press 'r' to refresh or 'q' to quit:" + ANSI_RESET);
           System.out.print(ANSI_GREEN + "> " + ANSI_RESET);
           String input = sc.nextLine().toLowerCase();
@@ -363,6 +444,9 @@ public class Client extends UnicastRemoteObject implements IClient {
     }
   }
 
+  /**
+   * Loads the server IP address from the config file.
+   */
   private void loadConfig() {
     Properties prop = new Properties();
     try (FileInputStream input = new FileInputStream("assets/config.properties")) {
@@ -374,6 +458,10 @@ public class Client extends UnicastRemoteObject implements IClient {
     }
   }
 
+  /**
+   * Main method to start the client application.
+   * @param args the command line arguments.
+   */
   public static void main(String[] args) {
     try {
       new Client();

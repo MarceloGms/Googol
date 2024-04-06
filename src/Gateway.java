@@ -18,6 +18,11 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.logging.SimpleFormatter;
 
+/**
+ * The Gateway class implements the remote interfaces IGatewayCli, IGatewayDl, and IGatewayBrl.
+ * It acts as an intermediary between clients, barrels, and downloaders manager in a distributed search engine system.
+ * The Gateway class is responsible for handling client requests, managing barrels, and downloaders.
+ */
 public class Gateway extends UnicastRemoteObject implements IGatewayCli, IGatewayDl, IGatewayBrl {
   private static final Logger LOGGER = Logger.getLogger(Gateway.class.getName());
   private ArrayList<IClient> clients;
@@ -28,6 +33,11 @@ public class Gateway extends UnicastRemoteObject implements IGatewayCli, IGatewa
   private int nextId;
   private Set<Integer> availableIds;
 
+  /**
+   * Constructs a Gateway object.
+   * Initializes necessary data structures and sets up RMI registry.
+   * @throws RemoteException if there is a remote communication error.
+   */
   Gateway() throws RemoteException {
     super();
     clients = new ArrayList<>();
@@ -37,7 +47,16 @@ public class Gateway extends UnicastRemoteObject implements IGatewayCli, IGatewa
     nextId = 1;
     availableIds = new HashSet<>();
     loadConfig();
+    initializeLogger();
+    System.getProperties().put("java.security.policy", "policy.all");
+    bindGatewayToRegistry();
+    deleteQueueFile();
+  }
 
+  /**
+   * Initializes the logger for the Gateway.
+   */
+  private void initializeLogger() {
     try {
       FileHandler fileHandler = new FileHandler("gateway.log");
       fileHandler.setFormatter(new SimpleFormatter());
@@ -46,9 +65,12 @@ public class Gateway extends UnicastRemoteObject implements IGatewayCli, IGatewa
     } catch (IOException e) {
       System.err.println("Failed to configure logger: " + e.getMessage());
     }
+  }
 
-    System.getProperties().put("java.security.policy", "policy.all");
-
+  /**
+   * Binds the Gateway to the RMI registry.
+   */
+  private void bindGatewayToRegistry() {
     try {
       LOGGER.info("Gateway starting...\n");
       LocateRegistry.createRegistry(1099);
@@ -59,10 +81,17 @@ public class Gateway extends UnicastRemoteObject implements IGatewayCli, IGatewa
       LOGGER.log(Level.SEVERE, "Exception occurred: ", e);
       System.exit(1);
     }
-    deleteQueueFile();
   }
   
   // Gateway-Client methods
+  
+  /**
+   * Sends a download request to the downloaders manager for a given URL.
+   * Sends an error message to the client via RMI callback if the URL is invalid or the download manager is not active, or if there are no active barrels available.
+   * @param s the URL to download.
+   * @param client the interface of the client requesting the download.
+   * @throws RemoteException if there is a remote communication error.
+   */
   @Override
   public void send(String s , IClient client) throws RemoteException {
     if (isValidURL(s)) {
@@ -79,12 +108,22 @@ public class Gateway extends UnicastRemoteObject implements IGatewayCli, IGatewa
     }
 	}
 
+  /**
+   * Subscribes a client to the Gateway by adding their interface to the clients list.
+   * @param c the client interface to subscribe.
+   * @throws RemoteException if there is a remote communication error.
+   */
   @Override
   public void subscribe(IClient c) throws RemoteException {
     clients.add(c);
     LOGGER.info("Client subscribed\n");
 	}
 
+  /**
+   * Unsubscribes a client from the Gateway by removing their interface from the clients list.
+   * @param c the client interface to unsubscribe.
+   * @throws RemoteException if there is a remote communication error.
+   */
   @Override
   public void unsubscribe(IClient c) throws RemoteException {
     if (clients.remove(c)) {
@@ -94,6 +133,13 @@ public class Gateway extends UnicastRemoteObject implements IGatewayCli, IGatewa
     }
   }
 
+  /**
+   * Gets the search results by choosing a random barrel to perform the search operation.
+   * @param s the query string to search for.
+   * @return the search results to the client.
+   * @return "No barrels available" if there are no barrels available.
+   * @throws RemoteException if there is a remote communication error.
+   */
   @Override
   public String search(String s) throws RemoteException {
     Random rand = new Random();
@@ -105,6 +151,14 @@ public class Gateway extends UnicastRemoteObject implements IGatewayCli, IGatewa
     return barrels.get(idx).search(s);
   }
 
+  /**
+   * Finds the sub-links of a given URL by choosing a random barrel to perform the operation.
+   * @param s the URL to find sub-links for.
+   * @return the sub-links of the URL to the client.
+   * @return "Invalid URL" if the URL is invalid.
+   * @return "No barrels available" if there are no barrels available.
+   * @throws RemoteException if there is a remote communication error.
+   */
   @Override
   public String findSubLinks(String s) throws RemoteException {
     if (!isValidURL(s)) {
@@ -120,6 +174,12 @@ public class Gateway extends UnicastRemoteObject implements IGatewayCli, IGatewa
     }
   }
 
+  /**
+   * Gets the top 10 searches by choosing a random barrel to perform the operation.
+   * @return the top 10 searches to the client.
+   * @return "No barrels available" if there are no barrels available.
+   * @throws RemoteException if there is a remote communication error.
+   */
   @Override
   public String getTop10Searches() throws RemoteException {
     Random rand = new Random();
@@ -131,6 +191,12 @@ public class Gateway extends UnicastRemoteObject implements IGatewayCli, IGatewa
     return barrels.get(idx).getTop10Searches();
   }
 
+  /**
+   * Gets the active barrels by returning the IDs of the active barrels.
+   * @return the IDs of the active barrels to the client.
+   * @return "No barrels available" if there are no active barrels.
+   * @throws RemoteException if there is a remote communication error.
+   */
   @Override
   public String getActiveBarrels() throws RemoteException {
     if (brlCount == 0) {
@@ -145,6 +211,13 @@ public class Gateway extends UnicastRemoteObject implements IGatewayCli, IGatewa
   }
 
   // Gateway-Downloader methods
+
+  /**
+   * Adds the downloader manager to the Gateway.
+   * @param dm the interface downloader manager to add.
+   * @return true if the downloader manager is successfully added, false otherwise.
+   * @throws RemoteException if there is a remote communication error.
+   */
   @Override
   public Boolean AddDM(IDownloader dm) throws RemoteException {
     if (downloaderManager != null) {
@@ -156,6 +229,12 @@ public class Gateway extends UnicastRemoteObject implements IGatewayCli, IGatewa
     return true;
   }
 
+  /**
+   * Messages from the downloaders manager to be printed on the log.
+   * @param s the message sent by the download manager.
+   * @param type the type of message (error or info).
+   * @throws RemoteException if there is a remote communication error.
+   */
   @Override
   public void DlMessage(String s, String type) throws RemoteException {
     if (type.equals("error"))
@@ -164,6 +243,11 @@ public class Gateway extends UnicastRemoteObject implements IGatewayCli, IGatewa
       LOGGER.info(s + "\n");
   }
 
+  /**
+   * Removes the downloader manager from the Gateway.
+   * (Commented because works with bugs) Starts a new downloader manager if the current one crashes.
+   * @throws RemoteException if there is a remote communication error.
+   */
   @Override
   public void RmvDM() throws RemoteException {
     if (downloaderManager != null) {
@@ -177,6 +261,13 @@ public class Gateway extends UnicastRemoteObject implements IGatewayCli, IGatewa
   }
 
   // Gateway-Barrel methods
+
+  /**
+   * Adds a barrel to the Gateway by adding its iterface to the active barrels list.
+   * @param brl the interface of the barrel to add.
+   * @return the ID of the barrel added.
+   * @throws RemoteException if there is a remote communication error.
+   */
   @Override
   public int AddBrl(IBarrel brl) throws RemoteException {
     synchronized (barrels) {
@@ -195,6 +286,12 @@ public class Gateway extends UnicastRemoteObject implements IGatewayCli, IGatewa
     }
   }
 
+  /**
+   * Removes a barrel from the Gateway by removing its interface from the active barrels list.
+   * @param brl the interface of the barrel to remove.
+   * @param id the ID of the barrel to remove.
+   * @throws RemoteException if there is a remote communication error.
+   */
   @Override
   public void rmvBrl(IBarrel brl, int id) throws RemoteException {
     synchronized (barrels) {
@@ -208,11 +305,21 @@ public class Gateway extends UnicastRemoteObject implements IGatewayCli, IGatewa
     }
   }
 
+  /**
+   * Messages from the barrels to be printed on the log.
+   * @param s the message sent by the barrel.
+   * @throws RemoteException if there is a remote communication error.
+   */
   @Override
   public void BrlMessage(String s) throws RemoteException {
     LOGGER.warning(s + "\n");
   }
 
+  /**
+   * Shuts down the Gateway by sending a shutdown message to all clients, barrels, and the downloaders manager.
+   * Unbinds the Gateway from the RMI registry and unexports the Gateway object.
+   * Currently not working as expected.
+   */
   private void shutdown() {
     try {
       LOGGER.info("Gateway shutting down...\n");
@@ -233,19 +340,24 @@ public class Gateway extends UnicastRemoteObject implements IGatewayCli, IGatewa
     }
   }
 
+  /**
+   * Deletes the queue file used by the downloaders manager.
+   */
   private void deleteQueueFile() {
     File queueFile = new File("assets/queue.ser");
     if (queueFile.exists()) {
         if (queueFile.delete()) {
-          LOGGER.info("Queue file deleted.\n");
         } else {
           LOGGER.warning("Failed to delete queue file.\n");
         }
-    } else {
     }
   }
 
-  // check if the URL is valid
+  /**
+   * Checks if a given string is a valid URL.
+   * @param url the string to check if it is a valid URL.
+   * @return true if the string is a valid URL, false otherwise.
+   */
   private boolean isValidURL(String url) {
     try {
         new URL(url).toURI();
@@ -255,10 +367,17 @@ public class Gateway extends UnicastRemoteObject implements IGatewayCli, IGatewa
     }
   }
 
+  /**
+   * Makes a barrel ID available for reuse.
+   * @param id the ID to make available.
+   */
   public void makeIdAvailable(int id) {
         availableIds.add(id);
   }
 
+  /**
+   * Loads the configuration file to get the server IP address.
+   */
   private void loadConfig() {
     Properties prop = new Properties();
     try (FileInputStream input = new FileInputStream("assets/config.properties")) {
@@ -270,6 +389,10 @@ public class Gateway extends UnicastRemoteObject implements IGatewayCli, IGatewa
     }
   }
 
+  /**
+   * The main method to start the Gateway.
+   * @param args the command line arguments.
+   */
   public static void main(String[] args) {
     try {
       Gateway gateway = new Gateway();

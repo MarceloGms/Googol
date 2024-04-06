@@ -1,6 +1,6 @@
 # compile java files
 compile:
-	@javac -cp lib/* -Xlint:unchecked src/*.java -d bin
+	@javac -cp lib/* src/*.java -d bin
 
 # run client
 cli:
@@ -19,7 +19,3 @@ dl:
 	@java -cp bin;lib/* Downloader
 # for linux
 # @java -cp bin:lib/* Downloader
-
-# run googol app
-# (not working)
-# run: compile gw dl brl
