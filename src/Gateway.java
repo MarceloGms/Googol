@@ -242,7 +242,6 @@ public class Gateway extends UnicastRemoteObject implements IGatewayCli, IGatewa
           LOGGER.warning("Failed to delete queue file.\n");
         }
     } else {
-        LOGGER.info("Queue file does not exist.\n");
     }
   }
 

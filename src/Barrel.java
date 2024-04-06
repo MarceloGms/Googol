@@ -169,6 +169,12 @@ public class Barrel extends UnicastRemoteObject implements IBarrel, Runnable {
 
     @Override
     public String getTop10Searches() throws RemoteException {
+        // if file does not exist, return empty string
+        File top10File = new File("assets/top10.dat");
+        if (!top10File.exists()) {
+            return "";
+        }
+        
         String string_links = "";
         HashMap<String, Integer> searchCount = readHashMapFromFileTop10("top10.dat");
         List<Map.Entry<String, Integer>> entryList = new ArrayList<>(searchCount.entrySet());
@@ -439,8 +445,9 @@ public class Barrel extends UnicastRemoteObject implements IBarrel, Runnable {
             System.out.println("Barrel " + id + " shutting down...");
             // Notify the Gateway about the shutdown
             if (gw != null) {
-                gw.rmvBrl(this, id);
-                gw.BrlMessage("Barrel " + id + " shutting down.");
+                synchronized (gw) {
+                    gw.rmvBrl(this, id);
+                }
             }
         } catch (RemoteException e) {
         }

@@ -26,20 +26,7 @@ public class Client extends UnicastRemoteObject implements IClient {
   Client() throws RemoteException{
     super();
     loadConfig();
-    
-    // Connect to the Gateway
-    try {
-      gw = (IGatewayCli) Naming.lookup("rmi://" + SERVER_IP_ADDRESS + ":1099/gw");
-    } catch (NotBoundException e) {
-      System.err.println(ANSI_RED + "Gateway not bound. Exiting program." + ANSI_RESET);
-      System.exit(1);
-    } catch (MalformedURLException e) {
-      System.err.println(ANSI_RED + "Malformed URL. Exiting program." + ANSI_RESET);
-      System.exit(1);
-    } catch (RemoteException e) {
-      System.err.println(ANSI_RED + "Gateway down. Exiting program." + ANSI_RESET);
-      System.exit(1);
-    }
+    connectToGateway();
 
     try {
       gw.subscribe(this);
@@ -49,6 +36,20 @@ public class Client extends UnicastRemoteObject implements IClient {
     }
 
     run();
+  }
+
+  private void connectToGateway() {
+    try {
+        gw = (IGatewayCli) Naming.lookup("rmi://" + SERVER_IP_ADDRESS + ":1099/gw");
+        gw.subscribe(this);
+    } catch (RemoteException | NotBoundException | MalformedURLException e) {
+        handleErrorAndExit("Error connecting to the Gateway.");
+    }
+  }
+
+  private void handleErrorAndExit(String message) {
+      System.err.println(ANSI_RED + message + " Exiting program." + ANSI_RESET);
+      System.exit(1);
   }
 
   @Override
@@ -285,7 +286,11 @@ public class Client extends UnicastRemoteObject implements IClient {
       try {
         result = gw.getTop10Searches();
         if (result != null) {
-          if (result.equals("No barrels available")) {
+          if (result.equals("")) {
+            System.out.println(ANSI_RED + "No results found.\n" + ANSI_RESET);
+            return;
+          }
+          else if (result.equals("No barrels available")) {
             System.out.println(ANSI_RED + "No barrels available.\n" + ANSI_RESET);
             return;
           } else {
