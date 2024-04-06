@@ -396,8 +396,6 @@ public class Barrel extends UnicastRemoteObject implements IBarrel, Runnable {
                 .replaceAll("\\p{M}", "")
                 .toLowerCase();
     }
-    
-    //FUNÇÕES AINDA NÃO USADAS
 
     private static int loadConfig() {
         Properties prop = new Properties();
@@ -421,7 +419,7 @@ public class Barrel extends UnicastRemoteObject implements IBarrel, Runnable {
             if (multicastSocket != null) {
                 multicastSocket.close();
             }
-            System.out.println("Barrel " + id + " shutting down...\n");
+            System.out.println("Barrel " + id + " shutting down...");
             // Notify the Gateway about the shutdown
             if (gw != null) {
                 gw.rmvBrl(this, id);

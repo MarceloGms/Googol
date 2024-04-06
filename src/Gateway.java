@@ -166,7 +166,9 @@ public class Gateway extends UnicastRemoteObject implements IGatewayCli, IGatewa
   public void RmvDM() throws RemoteException {
     if (downloaderManager != null) {
       downloaderManager = null;
-      LOGGER.info("Downloader Manager removed\n");
+      LOGGER.warning("Downloader Manager crashed\n");
+      new Downloader("230.0.0.0", 12345);
+      LOGGER.info("New Downloader Manager starting...\n");
     } else {
       LOGGER.warning("Downloader Manager not found\n");
     }
@@ -177,11 +179,11 @@ public class Gateway extends UnicastRemoteObject implements IGatewayCli, IGatewa
   public int AddBrl(IBarrel brl) throws RemoteException {
     synchronized (barrels) {
       int currentId;
-      if (!availableIds.isEmpty()) {
+      if (!availableIds.isEmpty()) { // reuse id if available
           Iterator<Integer> iterator = availableIds.iterator();
           currentId = iterator.next();
           iterator.remove();
-      } else {
+      } else { // create new id
           currentId = nextId++;
       }
       barrels.add(brl);
@@ -193,12 +195,14 @@ public class Gateway extends UnicastRemoteObject implements IGatewayCli, IGatewa
 
   @Override
   public void rmvBrl(IBarrel brl, int id) throws RemoteException {
-    if (barrels.remove(brl)) {
-      LOGGER.info("Barrel removed: " + id + "\n");
-      brlCount--;
-      availableIds.add(id);
-    } else {
-      LOGGER.warning("Barrel not found\n");
+    synchronized (barrels) {
+      if (barrels.remove(brl)) {
+        LOGGER.info("Barrel removed: " + id + "\n");
+        brlCount--;
+        availableIds.add(id);
+      } else {
+        LOGGER.warning("Barrel not found\n");
+      }
     }
   }
 
@@ -263,7 +267,7 @@ public class Gateway extends UnicastRemoteObject implements IGatewayCli, IGatewa
       
     } catch (RemoteException e) {
       LOGGER.log(Level.SEVERE, "Exception occurred: ", e);
-      throw new RuntimeException(e);
+      System.exit(1);
     }
   }
 }
