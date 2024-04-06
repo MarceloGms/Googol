@@ -117,9 +117,10 @@ public class Downloader extends UnicastRemoteObject implements IDownloader, Runn
           }
           queueSemaphore.acquire();
         } catch (InterruptedException e) {
-          e.printStackTrace();
+          System.out.println("Error occurred while waiting for semaphore: " + e.getMessage());
+          shutdown();
         } catch (RemoteException e) {
-          e.printStackTrace();
+          System.out.println("Error occurred while sending message to Gateway: " + e.getMessage());
         }
         String url = queue.poll();
         if (url == null) {
@@ -129,7 +130,7 @@ public class Downloader extends UnicastRemoteObject implements IDownloader, Runn
         try {
           gw.DlMessage(Thread.currentThread().getName() + ": Downloading URL: " + url, "info");
         } catch (RemoteException e) {
-          e.printStackTrace();
+          System.out.println("Error sending message to Gateway: " + e.getMessage());
         }
         extract(url);
         try {
@@ -232,7 +233,7 @@ public class Downloader extends UnicastRemoteObject implements IDownloader, Runn
       try {
           gw.DlMessage(Thread.currentThread().getName() + ": Download complete for URL: " + url, "info");
       } catch (RemoteException e) {
-          e.printStackTrace();
+          System.out.println("Error sending message to Gateway: " + e.getMessage());
       }
 
     } catch (IOException e) {
@@ -240,7 +241,7 @@ public class Downloader extends UnicastRemoteObject implements IDownloader, Runn
       try {
         gw.DlMessage("Error: Failed to extract content from URL. URL may be unreachable.", "error");
       } catch (RemoteException e1) {
-        e1.printStackTrace();
+        System.out.println("Error sending message to Gateway: " + e1.getMessage());
       }
     }
   }
@@ -278,7 +279,8 @@ public class Downloader extends UnicastRemoteObject implements IDownloader, Runn
       MAX_THREADS = Integer.parseInt(prop.getProperty("downloaders"));
       SERVER_IP_ADDRESS = prop.getProperty("server_ip");
     } catch (IOException ex) {
-      ex.printStackTrace();
+      System.out.println("Failed to load config file: " + ex.getMessage());
+      System.exit(1);
     }
   }
 

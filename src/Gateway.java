@@ -49,7 +49,7 @@ public class Gateway extends UnicastRemoteObject implements IGatewayCli, IGatewa
       LOGGER.info("Gateway bound to RMI registry on ip: " + SERVER_IP_ADDRESS + "\n");
     } catch (RemoteException | MalformedURLException e) {
       LOGGER.log(Level.SEVERE, "Exception occurred: ", e);
-      throw new RuntimeException(e);
+      System.exit(1);
     }
   }
   
@@ -225,7 +225,8 @@ public class Gateway extends UnicastRemoteObject implements IGatewayCli, IGatewa
       prop.load(input);
       SERVER_IP_ADDRESS = prop.getProperty("server_ip");
     } catch (IOException ex) {
-      ex.printStackTrace();
+      System.out.println("Failed to load config file: " + ex.getMessage());
+      System.exit(1);
     }
   }
 
@@ -237,6 +238,7 @@ public class Gateway extends UnicastRemoteObject implements IGatewayCli, IGatewa
       Runtime.getRuntime().addShutdownHook(new Thread(() -> {
         gateway.shutdown();
       }));
+      
     } catch (RemoteException e) {
       LOGGER.log(Level.SEVERE, "Exception occurred: ", e);
       throw new RuntimeException(e);

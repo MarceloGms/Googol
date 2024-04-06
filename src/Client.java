@@ -132,7 +132,7 @@ public class Client extends UnicastRemoteObject implements IClient {
     try {
       gw.send(url ,this);
     } catch (RemoteException e) {
-      e.printStackTrace();
+      System.out.println(ANSI_RED + "Error occurred sending url. Try again.\n" + ANSI_RESET);
     }
   }
 
@@ -364,7 +364,8 @@ public class Client extends UnicastRemoteObject implements IClient {
       prop.load(input);
       SERVER_IP_ADDRESS = prop.getProperty("server_ip");
     } catch (IOException ex) {
-      ex.printStackTrace();
+      System.out.println(ANSI_RED + "Error occurred while trying to load config file." + ANSI_RESET);
+      System.exit(1);
     }
   }
 
@@ -372,7 +373,8 @@ public class Client extends UnicastRemoteObject implements IClient {
     try {
       new Client();
     } catch (RemoteException e) {
-      e.printStackTrace();
+      System.err.println(ANSI_RED + "Error occurred during client initialization." + ANSI_RESET);
+      System.exit(1);
     }
   }
 }

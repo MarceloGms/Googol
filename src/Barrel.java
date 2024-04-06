@@ -57,7 +57,8 @@ public class Barrel extends UnicastRemoteObject implements IBarrel, Runnable {
         try {
             multicastSocket = new MulticastSocket(multicastPort);
         } catch (IOException e) {
-            e.printStackTrace();
+            System.err.println("Error creating multicast socket: " + e.getMessage());
+            System.exit(1);
         }
         // handle SIGINT
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
@@ -225,7 +226,8 @@ public class Barrel extends UnicastRemoteObject implements IBarrel, Runnable {
             gw.AddBrl(this, id);
             System.out.println("Barrel " + id + " bound to Gateway.");
         } catch (RemoteException e) {
-            e.printStackTrace();
+            System.out.println("Error adding barrel to Gateway: " + e.getMessage());
+            return;
         }
 
         listenForMulticastMessages();
@@ -304,7 +306,7 @@ public class Barrel extends UnicastRemoteObject implements IBarrel, Runnable {
                 objectOut.close();
                 
             } catch (Exception ex) {
-                ex.printStackTrace();
+                System.out.println("Error writing file: " + ex.getMessage());
             }
         }
     }
@@ -320,7 +322,7 @@ public class Barrel extends UnicastRemoteObject implements IBarrel, Runnable {
                 objectIn.close();
                 return hashMap;
             } catch (Exception ex) {
-                ex.printStackTrace();
+                System.out.println("Error reading file: " + ex.getMessage());
                 return null;
             }
         }
@@ -334,7 +336,7 @@ public class Barrel extends UnicastRemoteObject implements IBarrel, Runnable {
                 objectOut.writeObject(hashMap);
                 objectOut.close();
             } catch (IOException ex) {
-                ex.printStackTrace();
+                System.out.println("Error writing file: " + ex.getMessage());
             }
         }
     }
@@ -349,7 +351,7 @@ public class Barrel extends UnicastRemoteObject implements IBarrel, Runnable {
                 objectIn.close();
                 return hashMap;
             } catch (Exception ex) {
-                ex.printStackTrace();
+                System.out.println("Error reading file: " + ex.getMessage());
                 return null;
             }
         }
@@ -403,7 +405,8 @@ public class Barrel extends UnicastRemoteObject implements IBarrel, Runnable {
             SERVER_IP_ADDRESS = prop.getProperty("server_ip");
             return Integer.parseInt(prop.getProperty("barrels"));
         } catch (IOException ex) {
-            ex.printStackTrace();
+            System.out.println("Failed to load config file: " + ex.getMessage());
+            System.exit(1);
             return 0;
         }
     }
@@ -442,7 +445,7 @@ public class Barrel extends UnicastRemoteObject implements IBarrel, Runnable {
                 Thread thread = new Thread(barrel);
                 thread.start();
             } catch (RemoteException e) {
-                e.printStackTrace();
+                System.out.println("Error creating Barrel: " + e.getMessage());
             }
         }
     }
