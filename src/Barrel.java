@@ -27,7 +27,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
-import java.util.UUID;
 
 public class Barrel extends UnicastRemoteObject implements IBarrel, Runnable {
     private int id;
@@ -186,25 +185,6 @@ public class Barrel extends UnicastRemoteObject implements IBarrel, Runnable {
         return id;
     }
 
-    private boolean isStopWord(String word) {
-        return stopWords.contains(normalizeWord(word));
-    }
-
-    private void loadStopWords(String filename) {
-        try (BufferedReader reader = new BufferedReader(new FileReader(filename))) {
-        String line;
-        while ((line = reader.readLine()) != null) {
-            String word = line.trim().toLowerCase();
-            if (!word.isEmpty()) {
-            stopWords.add(normalizeWord(word));
-            }
-        }
-        } catch (IOException e) {
-        System.err.println("Error: Failed to load stop words file. Exiting program.");
-        System.exit(1);
-        }
-    }
-
     public void run() {
         // Connect to the Gateway
         try {
@@ -255,7 +235,7 @@ public class Barrel extends UnicastRemoteObject implements IBarrel, Runnable {
                 String message = new String(packet.getData(), 0, packet.getLength());
                 //System.out.println("Barrel " + id + " received message from " + packet.getAddress().getHostAddress() + ": " + message);
                 String[] parts = message.split("\n");
-
+                System.out.println(message);
                 String url = parts[0].replace("URL: ", "");
                 String title = parts[1].replace("Title: ", "");
                 String citation = parts[2].replace("Citation: ", "");
@@ -276,7 +256,7 @@ public class Barrel extends UnicastRemoteObject implements IBarrel, Runnable {
                 }
 
                 String[] links = linksString.split(", ");
-                
+                System.out.println(links);
                 for (String link : links) {
                     addToUrls(url, link);
                 }
@@ -387,6 +367,25 @@ public class Barrel extends UnicastRemoteObject implements IBarrel, Runnable {
                 }
                 linked.add(key);
             }
+        }
+    }
+
+    private boolean isStopWord(String word) {
+        return stopWords.contains(normalizeWord(word));
+    }
+
+    private void loadStopWords(String filename) {
+        try (BufferedReader reader = new BufferedReader(new FileReader(filename))) {
+        String line;
+        while ((line = reader.readLine()) != null) {
+            String word = line.trim().toLowerCase();
+            if (!word.isEmpty()) {
+            stopWords.add(normalizeWord(word));
+            }
+        }
+        } catch (IOException e) {
+        System.err.println("Error: Failed to load stop words file. Exiting program.");
+        System.exit(1);
         }
     }
 

@@ -167,8 +167,8 @@ public class Gateway extends UnicastRemoteObject implements IGatewayCli, IGatewa
     if (downloaderManager != null) {
       downloaderManager = null;
       LOGGER.warning("Downloader Manager crashed\n");
-      new Downloader("230.0.0.0", 12345);
-      LOGGER.info("New Downloader Manager starting...\n");
+      /* new Downloader("230.0.0.0", 12345);
+      LOGGER.info("New Downloader Manager starting...\n"); */
     } else {
       LOGGER.warning("Downloader Manager not found\n");
     }
@@ -197,7 +197,7 @@ public class Gateway extends UnicastRemoteObject implements IGatewayCli, IGatewa
   public void rmvBrl(IBarrel brl, int id) throws RemoteException {
     synchronized (barrels) {
       if (barrels.remove(brl)) {
-        LOGGER.info("Barrel removed: " + id + "\n");
+        LOGGER.warning("Barrel crashed: " + id + "\n");
         brlCount--;
         availableIds.add(id);
       } else {
