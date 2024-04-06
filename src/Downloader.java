@@ -296,7 +296,6 @@ public class Downloader extends UnicastRemoteObject implements IDownloader, Runn
         // Unexport the object
         UnicastRemoteObject.unexportObject(this, true);
     } catch (RemoteException e) {
-        System.out.println("Error occurred during shutdown: " + e.getMessage());
     }
   }
 

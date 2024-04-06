@@ -7,8 +7,11 @@ import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.server.UnicastRemoteObject;
 import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.Iterator;
 import java.util.Properties;
 import java.util.Random;
+import java.util.Set;
 import java.util.logging.FileHandler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -21,6 +24,8 @@ public class Gateway extends UnicastRemoteObject implements IGatewayCli, IGatewa
   private IDownloader downloaderManager;
   private int brlCount;
   private String SERVER_IP_ADDRESS;
+  private int nextId;
+  private Set<Integer> availableIds;
 
   Gateway() throws RemoteException {
     super();
@@ -28,6 +33,8 @@ public class Gateway extends UnicastRemoteObject implements IGatewayCli, IGatewa
     barrels = new ArrayList<>();
     downloaderManager = null;
     brlCount = 0;
+    nextId = 1;
+    availableIds = new HashSet<>();
     loadConfig();
 
     try {
@@ -130,7 +137,6 @@ public class Gateway extends UnicastRemoteObject implements IGatewayCli, IGatewa
     }
     String activeBarrels = "";
     for (IBarrel b : barrels) {
-      System.out.println(b.getId() + "\n");
       activeBarrels += b.getId() + "\n";
     }
     return activeBarrels;
@@ -170,10 +176,18 @@ public class Gateway extends UnicastRemoteObject implements IGatewayCli, IGatewa
   @Override
   public int AddBrl(IBarrel brl) throws RemoteException {
     synchronized (barrels) {
+      int currentId;
+      if (!availableIds.isEmpty()) {
+          Iterator<Integer> iterator = availableIds.iterator();
+          currentId = iterator.next();
+          iterator.remove();
+      } else {
+          currentId = nextId++;
+      }
       barrels.add(brl);
       brlCount++;
-      LOGGER.info("Barrel added: " + brlCount + "\n");
-      return brlCount; // id
+      LOGGER.info("Barrel added with ID: " + currentId + "\n");
+      return currentId;
     }
   }
 
@@ -182,6 +196,7 @@ public class Gateway extends UnicastRemoteObject implements IGatewayCli, IGatewa
     if (barrels.remove(brl)) {
       LOGGER.info("Barrel removed: " + id + "\n");
       brlCount--;
+      availableIds.add(id);
     } else {
       LOGGER.warning("Barrel not found\n");
     }
@@ -220,6 +235,10 @@ public class Gateway extends UnicastRemoteObject implements IGatewayCli, IGatewa
     } catch (Exception e) {
         return false;
     }
+  }
+
+  public void makeIdAvailable(int id) {
+        availableIds.add(id);
   }
 
   private void loadConfig() {

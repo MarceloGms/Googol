@@ -428,11 +428,8 @@ public class Barrel extends UnicastRemoteObject implements IBarrel, Runnable {
                 gw.BrlMessage("Barrel " + id + " shutting down.");
             }
         } catch (RemoteException e) {
-            System.out.println("Error occurred during shutdown: " + e.getMessage());
         }
     }
-
-    // TODO: se um barrel novo for adicionado, ele sincroniza-se com os outros barrels (EXTRA)
 
     public static void main(String[] args) {
         String multicastAddress = "230.0.0.0";

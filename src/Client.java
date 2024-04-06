@@ -260,13 +260,13 @@ public class Client extends UnicastRemoteObject implements IClient {
             listActiveBarrels(sc);
             break;
           default:
-            System.out.println("Invalid input. Try again.\n");
+            System.out.println(ANSI_RED + "Invalid input. Try again.\n"+ ANSI_RESET);
         }
       } catch (InputMismatchException e) {
-        System.out.println("Invalid input. Please enter a valid integer.\n");
+        System.out.println(ANSI_RED + "Invalid input. Please enter a valid integer.\n" + ANSI_RESET);
         sc.nextLine(); // Consume invalid input
       } catch (NoSuchElementException e) {
-        System.out.println("Input not found. Please try again.\n");
+        System.out.println(ANSI_RED + "Input not found. Please try again.\n" + ANSI_RESET);
         sc.nextLine(); // Consume invalid input
       }
     }
