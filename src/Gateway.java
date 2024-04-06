@@ -168,14 +168,17 @@ public class Gateway extends UnicastRemoteObject implements IGatewayCli, IGatewa
 
   // Gateway-Barrel methods
   @Override
-  public void AddBrl(IBarrel brl, String id) throws RemoteException {
-    barrels.add(brl);
-    LOGGER.info("Barrel added: " + id + "\n");
-    brlCount++;
+  public int AddBrl(IBarrel brl) throws RemoteException {
+    synchronized (barrels) {
+      barrels.add(brl);
+      brlCount++;
+      LOGGER.info("Barrel added: " + brlCount + "\n");
+      return brlCount; // id
+    }
   }
 
   @Override
-  public void rmvBrl(IBarrel brl, String id) throws RemoteException {
+  public void rmvBrl(IBarrel brl, int id) throws RemoteException {
     if (barrels.remove(brl)) {
       LOGGER.info("Barrel removed: " + id + "\n");
       brlCount--;

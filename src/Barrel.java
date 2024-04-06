@@ -30,7 +30,7 @@ import java.util.Set;
 import java.util.UUID;
 
 public class Barrel extends UnicastRemoteObject implements IBarrel, Runnable {
-    private String id;
+    private int id;
     private IGatewayBrl gw;
     private Set<String> stopWords;
     private final int multicastPort;
@@ -46,7 +46,6 @@ public class Barrel extends UnicastRemoteObject implements IBarrel, Runnable {
     public Barrel(String multicastAddress, int multicastPort) throws RemoteException {
         this.multicastAddress = multicastAddress;
         this.multicastPort = multicastPort;
-        id = UUID.randomUUID().toString();
         invertedIndex = new HashMap<>();
         running = true;
         pageLinks = new HashMap<>();
@@ -183,7 +182,7 @@ public class Barrel extends UnicastRemoteObject implements IBarrel, Runnable {
     }
 
     @Override
-    public String getId() throws RemoteException {
+    public int getId() throws RemoteException {
         return id;
     }
 
@@ -210,7 +209,7 @@ public class Barrel extends UnicastRemoteObject implements IBarrel, Runnable {
         // Connect to the Gateway
         try {
             gw = (IGatewayBrl) Naming.lookup("rmi://" + SERVER_IP_ADDRESS + ":1099/gw");
-            System.out.println("Barrel " + id + " connected to Gateway.");
+            System.out.println("Barrel connected to Gateway.");
         } catch (NotBoundException e) {
             System.err.println("Gateway not bound. Exiting program.");
             System.exit(1);
@@ -223,7 +222,9 @@ public class Barrel extends UnicastRemoteObject implements IBarrel, Runnable {
         }
 
         try {
-            gw.AddBrl(this, id);
+            synchronized (gw) {
+                id = gw.AddBrl(this);
+            }
             System.out.println("Barrel " + id + " bound to Gateway.");
         } catch (RemoteException e) {
             System.out.println("Error adding barrel to Gateway: " + e.getMessage());
