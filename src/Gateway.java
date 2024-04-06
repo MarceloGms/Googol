@@ -1,3 +1,4 @@
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.net.MalformedURLException;
@@ -58,6 +59,7 @@ public class Gateway extends UnicastRemoteObject implements IGatewayCli, IGatewa
       LOGGER.log(Level.SEVERE, "Exception occurred: ", e);
       System.exit(1);
     }
+    deleteQueueFile();
   }
   
   // Gateway-Client methods
@@ -228,6 +230,19 @@ public class Gateway extends UnicastRemoteObject implements IGatewayCli, IGatewa
       UnicastRemoteObject.unexportObject(this, true);
     } catch (Exception e) {
       LOGGER.log(Level.SEVERE, "Error occurred during shutdown: ", e);
+    }
+  }
+
+  private void deleteQueueFile() {
+    File queueFile = new File("assets/queue.ser");
+    if (queueFile.exists()) {
+        if (queueFile.delete()) {
+          LOGGER.info("Queue file deleted.\n");
+        } else {
+          LOGGER.warning("Failed to delete queue file.\n");
+        }
+    } else {
+        LOGGER.info("Queue file does not exist.\n");
     }
   }
 

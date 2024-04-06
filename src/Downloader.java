@@ -4,9 +4,13 @@ import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
@@ -91,6 +95,21 @@ public class Downloader extends UnicastRemoteObject implements IDownloader, Runn
         shutdown();
       }));
 
+      // try to restore the queue from file
+      File queueFile = new File("assets/queue.ser");
+      if (queueFile.exists()) {
+          try (ObjectInputStream inputStream = new ObjectInputStream(new FileInputStream("assets/queue.ser"))) {
+              @SuppressWarnings("unchecked")
+              ArrayList<String> savedQueue = (ArrayList<String>) inputStream.readObject();
+              queue.addAll(savedQueue);
+              queueSemaphore.release(savedQueue.size()); // Release semaphore permits
+              System.out.println("Queue contents restored from file assets/queue.ser");
+              gw.DlMessage("Queue contents restored from file assets/queue.ser", "info");
+          } catch (IOException | ClassNotFoundException e) {
+              System.err.println("Error loading queue contents from file: " + e.getMessage());
+          }
+      }
+
       for (int i = 1; i <= MAX_THREADS; i++) {
         Thread thread = new Thread(this, Integer.toString(i));
         thread.start();
@@ -130,7 +149,6 @@ public class Downloader extends UnicastRemoteObject implements IDownloader, Runn
         try {
           gw.DlMessage(Thread.currentThread().getName() + ": Downloading URL: " + url, "info");
         } catch (RemoteException e) {
-          System.out.println("Error sending message to Gateway: " + e.getMessage());
         }
         extract(url);
         try {
@@ -171,7 +189,6 @@ public class Downloader extends UnicastRemoteObject implements IDownloader, Runn
     // gw.DlMessage("URL added to the DL queue: " + url);
   }
 
-  // TODO: o downloader ainda nao desliga quando recebe a mensagem de shutdown nao sei porque
   @Override
   public void send(String s) throws RemoteException {
     if (s.equals("Gateway shutting down.")) {
@@ -287,6 +304,13 @@ public class Downloader extends UnicastRemoteObject implements IDownloader, Runn
   private void shutdown() {
     try {
         System.out.println("Downloader shutting down...");
+        try (ObjectOutputStream outputStream = new ObjectOutputStream(new FileOutputStream("assets/queue.ser"))) {
+          outputStream.writeObject(new ArrayList<>(queue));
+          System.out.println("Queue contents saved to file: assets/queue.ser");
+          gw.DlMessage("Queue contents saved to file: assets/queue.ser", "info");
+        } catch (IOException e) {
+            System.err.println("Error saving queue contents to file: " + e.getMessage());
+        }
         running = false;
         multicastSocket.close();
         // Notify the Gateway about the shutdown
