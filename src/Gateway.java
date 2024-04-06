@@ -24,13 +24,43 @@ import java.util.logging.SimpleFormatter;
  * The Gateway class is responsible for handling client requests, managing barrels, and downloaders.
  */
 public class Gateway extends UnicastRemoteObject implements IGatewayCli, IGatewayDl, IGatewayBrl {
+  /**
+   * Logger for the Gateway class.
+   */
   private static final Logger LOGGER = Logger.getLogger(Gateway.class.getName());
+  /**
+   * List of connected clients.
+   */
   private ArrayList<IClient> clients;
+
+  /**
+   * List of active barrels.
+   */
   private ArrayList<IBarrel> barrels;
+
+  /**
+   * The downloader manager responsible for handling download requests.
+   */
   private IDownloader downloaderManager;
+
+  /**
+   * Current number of barrels.
+   */
   private int brlCount;
+
+  /**
+   * The IP address of the gateway RMI server.
+   */
   private String SERVER_IP_ADDRESS;
+
+  /**
+   * The ID to assign to the next barrel.
+   */
   private int nextId;
+
+  /**
+   * Set of available IDs to reuse.
+   */
   private Set<Integer> availableIds;
 
   /**
@@ -136,8 +166,7 @@ public class Gateway extends UnicastRemoteObject implements IGatewayCli, IGatewa
   /**
    * Gets the search results by choosing a random barrel to perform the search operation.
    * @param s the query string to search for.
-   * @return the search results to the client.
-   * @return "No barrels available" if there are no barrels available.
+   * @return the search results to the client. Returns "No barrels available" if there are no barrels available.
    * @throws RemoteException if there is a remote communication error.
    */
   @Override
@@ -154,9 +183,8 @@ public class Gateway extends UnicastRemoteObject implements IGatewayCli, IGatewa
   /**
    * Finds the sub-links of a given URL by choosing a random barrel to perform the operation.
    * @param s the URL to find sub-links for.
-   * @return the sub-links of the URL to the client.
-   * @return "Invalid URL" if the URL is invalid.
-   * @return "No barrels available" if there are no barrels available.
+   * @return The sub-links of the URL to the client. Returns "Invalid URL" if the URL is invalid
+   *         or "No barrels available" if there are no barrels available.
    * @throws RemoteException if there is a remote communication error.
    */
   @Override

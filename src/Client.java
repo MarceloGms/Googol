@@ -17,18 +17,49 @@ import java.util.Scanner;
  */
 public class Client extends UnicastRemoteObject implements IClient {
 
-  // ANSI color codes for console output
+  /**
+   * ANSI color code for resetting console output color.
+   */
   public static final String ANSI_RESET = "\u001B[0m";
+
+  /**
+   * ANSI color code for red console output.
+   */
   public static final String ANSI_RED = "\u001B[31m";
+
+  /**
+   * ANSI color code for green console output.
+   */
   public static final String ANSI_GREEN = "\u001B[32m";
+
+  /**
+   * ANSI color code for yellow console output.
+   */
   public static final String ANSI_YELLOW = "\u001B[33m";
+
+  /**
+   * ANSI color code for blue console output.
+   */
   public static final String ANSI_BLUE = "\u001B[34m";
+
+  /**
+   * ANSI color code for purple console output.
+   */
   public static final String ANSI_PURPLE = "\u001B[35m";
+
+  /**
+   * ANSI color code for cyan console output.
+   */
   public static final String ANSI_CYAN = "\u001B[36m";
 
-  // Remote gateway interface
+  /**
+   * The remote gateway interface used for communication with the gateway.
+   */
   private IGatewayCli gw;
-  // Server IP address
+
+  /**
+   * The IP address of the gateway RMI server.
+   */
   private String SERVER_IP_ADDRESS;
 
   /**

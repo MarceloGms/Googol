@@ -39,20 +39,79 @@ import java.text.Normalizer;
  * The Downloaders Manager has a queue of URLs shared by all threads.
  */
 public class Downloader extends UnicastRemoteObject implements IDownloader, Runnable {
+  /**
+ * Maximum number of downloader threads.
+ */
   private int MAX_THREADS;
+
+  /**
+   * The remote gateway interface used for communication with the gateway.
+   */
   private IGatewayDl gw;
+
+  /**
+   * Set of stop words used in text processing.
+   */
   private Set<String> stopWords;
+
+  /**
+   * List of extracted URLs.
+   */
   private ArrayList<String> ulrsList;
+
+  /**
+   * List extracted keywords.
+   */
   private ArrayList<String> keywords;
+
+  /**
+   * Semaphore for controlling access to the download queue.
+   */
   private Semaphore queueSemaphore;
+
+  /**
+   * Queue of URLs to be downloaded.
+   */
   private Queue<String> queue;
+
+  /**
+   * Title of the document being downloaded.
+   */
   private String title;
+
+  /**
+   * Citation information for the document being downloaded.
+   */
   private String citation;
+
+  /**
+   * Multicast address for communication.
+   */
   private final String multicastAddress;
+
+  /**
+   * Multicast port for communication.
+   */
   private final int multicastPort;
+
+  /**
+   * Flag indicating whether the downloader is running.
+   */
   private Boolean running;
+
+  /**
+   * Multicast socket for communication.
+   */
   private DatagramSocket multicastSocket;
+
+  /**
+   * Lock object for multicast operations.
+   */
   private final Object multicastLock;
+
+  /**
+   * The IP address of the gateway RMI server.
+   */
   private String SERVER_IP_ADDRESS;
 
   /**
