@@ -1,7 +1,7 @@
 # How to Run
 
-Make sure you have `make` installed.
-Make sure you have `JDK 17` installed.
+- Make sure you have `make` installed.
+- Make sure you have `JDK 17` installed.
 
 ### Run Gateway
 
