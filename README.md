@@ -1,16 +1,22 @@
 # How to Run
 
 Make sure you have `make` installed.
+Make sure you have `JDK 17` installed.
 
-### Run Gateway:
+### Run Gateway
 
 - Open a terminal.
 - Navigate to the primary directory (googol).
 - Run the command: `make gw`
 
-### Run Barrels:
+##### Note:
 
-- Open a terminal.
+- If the code is not compiling you might have to create a `bin` folder in the primary directory.
+- For Linux users, use the commented command in the `dl` section of the makefile instead of the current one.
+
+### Run Barrels
+
+- Open a terminal (or multiple terminals).
 - Navigate to the primary directory (googol).
 - Run the command: `make brl`
 
@@ -18,7 +24,7 @@ Make sure you have `make` installed.
 
 - Make sure the gateway is running.
 
-### Run Downloader:
+### Run Downloader
 
 - Open a terminal.
 - Navigate to the primary directory (googol).
@@ -27,12 +33,18 @@ Make sure you have `make` installed.
 ##### Note:
 
 - Make sure the gateway is running.
-- For Linux users, use the commented command in the `dl` section of the makefile instead of the current one.
 
-### Run Clients:
+### Run Clients
 
-- Open another terminal (or multiple terminals for multiple clients).
+- Open a terminal (or multiple terminals for multiple clients).
 - Navigate to the primary directory (googol).
 - Run the command for each client: `make cli`
 
-Ensure that the server is running before you start the clients. This setup will allow you to run the server and multiple clients concurrently.
+##### Note:
+
+- Make sure the gateway is running.
+
+### Final considerations
+
+- Ensure all of the server's components are running before starting to perform client operations.
+- Modify the `config.properties` file to change the server ip address, number of barrels or number of downloaders.

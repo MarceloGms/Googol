@@ -12,8 +12,7 @@ import java.util.Properties;
 import java.util.Scanner;
 
 /**
- * The Client class represents a client application for interacting with the Googol Search Engine gateway.
- * It implements the IClient interface to receive messages from the server.
+ * The Client class represents a client application for interacting with the Googol Search Engine Gateway.
  */
 public class Client extends UnicastRemoteObject implements IClient {
 

@@ -19,3 +19,7 @@ dl:
 	@java -cp bin;lib/* Downloader
 # for linux
 # @java -cp bin:lib/* Downloader
+
+# gen javadoc
+# cd src
+# javadoc -private -d javadoc -sourcepath src -classpath "../lib/*.jar" *.java
