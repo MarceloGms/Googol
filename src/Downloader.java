@@ -442,11 +442,15 @@ public class Downloader extends UnicastRemoteObject implements IDownloader, Runn
   private void shutdown() {
     try {
         System.out.println("Downloader shutting down...");
-        try (ObjectOutputStream outputStream = new ObjectOutputStream(new FileOutputStream("assets/queue.ser"))) {
-          outputStream.writeObject(new ArrayList<>(queue));
-          System.out.println("Queue contents saved to file: assets/queue.ser");
-        } catch (IOException e) {
-            System.err.println("Error saving queue contents to file: " + e.getMessage());
+        if (queue.isEmpty()) {
+          System.out.println("Queue is empty. No URLs to save.");
+        } else {
+          try (ObjectOutputStream outputStream = new ObjectOutputStream(new FileOutputStream("assets/queue.ser"))) {
+            outputStream.writeObject(new ArrayList<>(queue));
+            System.out.println("Queue contents saved to file: assets/queue.ser");
+          } catch (IOException e) {
+              System.err.println("Error saving queue contents to file: " + e.getMessage());
+          }
         }
         running = false;
         multicastSocket.close();
