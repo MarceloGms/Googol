@@ -334,7 +334,7 @@ public class Barrel extends UnicastRemoteObject implements IBarrel, Runnable {
 
                 String message = new String(packet.getData(), 0, packet.getLength());
                 //System.out.println("Barrel " + id + " received message from " + packet.getAddress().getHostAddress() + ": " + message);
-                System.out.println(message);
+                //System.out.println(message);
                 // Process the message dividing it into parts
                 String[] parts = message.split("\n");
                 String url = parts[0].replace("URL: ", "");
