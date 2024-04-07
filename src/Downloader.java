@@ -85,16 +85,6 @@ public class Downloader extends UnicastRemoteObject implements IDownloader, Runn
   private String citation;
 
   /**
-   * Multicast address for communication.
-   */
-  private final String multicastAddress;
-
-  /**
-   * Multicast port for communication.
-   */
-  private final int multicastPort;
-
-  /**
    * Flag indicating whether the downloader is running.
    */
   private Boolean running;
@@ -115,16 +105,27 @@ public class Downloader extends UnicastRemoteObject implements IDownloader, Runn
   private String SERVER_IP_ADDRESS;
 
   /**
+   * The port of the gateway RMI server.
+   */
+  private String SERVER_PORT;
+
+  /**
+   * The multicast address to send information.
+   */
+  private String MULTICAST_ADDR;
+
+  /**
+   * The multicast port to send information.
+   */
+  private int MULTICAST_PORT;
+
+  /**
    * Constructs a Downloader object with the given multicast address and port.
    * Connects to the Gateway and creates threads to download web pages concurrently.
-   * @param multicastAddress The multicast address to send information.
-   * @param multicastPort The multicast port to send information.
    * @throws RemoteException If a communication-related exception occurs.
    */
-  Downloader(String multicastAddress, int multicastPort) throws RemoteException {
+  Downloader() throws RemoteException {
     super();
-    this.multicastAddress = multicastAddress;
-    this.multicastPort = multicastPort;
     stopWords = new HashSet<>();
     loadStopWords("assets/stop_words.txt");
     queueSemaphore = new Semaphore(0);
@@ -181,7 +182,7 @@ public class Downloader extends UnicastRemoteObject implements IDownloader, Runn
    */
   private void connectToGateway() {
     try {
-      gw = (IGatewayDl) Naming.lookup("rmi://" + SERVER_IP_ADDRESS + ":1099/gw");
+      gw = (IGatewayDl) Naming.lookup("rmi://" + SERVER_IP_ADDRESS + ":" + SERVER_PORT + "/gw");
       System.out.println("Connected to Gateway.");
     } catch (NotBoundException | MalformedURLException | RemoteException e) {
       System.err.println("Error connecting to the Gateway: " + e.getMessage());
@@ -256,8 +257,8 @@ public class Downloader extends UnicastRemoteObject implements IDownloader, Runn
             byte[] data = resposta.getBytes();
 
             // Create a DatagramPacket with the data and the multicast address and port
-            InetAddress group = InetAddress.getByName(multicastAddress);
-            DatagramPacket packet = new DatagramPacket(data, data.length, group, multicastPort);
+            InetAddress group = InetAddress.getByName(MULTICAST_ADDR);
+            DatagramPacket packet = new DatagramPacket(data, data.length, group, MULTICAST_PORT);
 
             // Send the DatagramPacket via multicast
             synchronized (multicastLock) {
@@ -423,6 +424,9 @@ public class Downloader extends UnicastRemoteObject implements IDownloader, Runn
       prop.load(input);
       MAX_THREADS = Integer.parseInt(prop.getProperty("downloaders"));
       SERVER_IP_ADDRESS = prop.getProperty("server_ip");
+      SERVER_PORT = prop.getProperty("server_port");
+      MULTICAST_ADDR = prop.getProperty("multicast_ip");
+      MULTICAST_PORT = Integer.parseInt(prop.getProperty("multicast_port"));
     } catch (IOException ex) {
       System.out.println("Failed to load config file: " + ex.getMessage());
       System.exit(1);
@@ -441,7 +445,6 @@ public class Downloader extends UnicastRemoteObject implements IDownloader, Runn
         try (ObjectOutputStream outputStream = new ObjectOutputStream(new FileOutputStream("assets/queue.ser"))) {
           outputStream.writeObject(new ArrayList<>(queue));
           System.out.println("Queue contents saved to file: assets/queue.ser");
-          gw.DlMessage("Queue contents saved to file: assets/queue.ser", "info");
         } catch (IOException e) {
             System.err.println("Error saving queue contents to file: " + e.getMessage());
         }
@@ -461,12 +464,9 @@ public class Downloader extends UnicastRemoteObject implements IDownloader, Runn
    * The main method creates a Downloader object with the specified multicast address and port.
    * @param args The command line arguments.
    */
-  public static void main(String args[]) {
-    String multicastAddress = "230.0.0.0"; 
-    int multicastPort = 12345; 
-    
+  public static void main(String args[]) { 
     try {
-      new Downloader(multicastAddress, multicastPort);
+      new Downloader();
     } catch (RemoteException e) {
       System.out.println("Error creating Downloader: " + e.getMessage());
     }

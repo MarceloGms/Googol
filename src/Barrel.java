@@ -48,15 +48,7 @@ public class Barrel extends UnicastRemoteObject implements IBarrel, Runnable {
      */
     private Set<String> stopWords;
     /**
-     * The port used for multicast communication.
-     */
-    private final int multicastPort;
-    /**
-     * The multicast address used for communication.
-     */
-    private final String multicastAddress;
-    /**
-     * The inverted index used to store the words and the urls where they appear.
+     * The hashmap used to store the inverted index.
      */
     private HashMap<String, HashSet<String>> invertedIndex;
     /**
@@ -83,17 +75,15 @@ public class Barrel extends UnicastRemoteObject implements IBarrel, Runnable {
     * The IP address of the gateway RMI server.
     */
     private static String SERVER_IP_ADDRESS;
+    private static String SERVER_PORT;
+    private static String MULTICAST_ADDR;
+    private static int MULTICAST_PORT;
 
     /**
-     * The constructor of the Barrel class.
-     * It initializes the Barrel with the given multicast address and port.
-     * @param multicastAddress The multicast address used for communication.
-     * @param multicastPort The multicast port used for communication.
-     * @throws RemoteException
+     * The Barrel constructor is used to create a new barrel.
+     * @throws RemoteException if there is an error creating the barrel
      */
-    public Barrel(String multicastAddress, int multicastPort) throws RemoteException {
-        this.multicastAddress = multicastAddress;
-        this.multicastPort = multicastPort;
+    public Barrel() throws RemoteException {
         invertedIndex = new HashMap<>();
         running = true;
         pageLinks = new HashMap<>();
@@ -104,7 +94,7 @@ public class Barrel extends UnicastRemoteObject implements IBarrel, Runnable {
         loadStopWords("assets/stop_words.txt");
         // Create the multicast socket
         try {
-            multicastSocket = new MulticastSocket(multicastPort);
+            multicastSocket = new MulticastSocket(MULTICAST_PORT);
         } catch (IOException e) {
             System.err.println("Error creating multicast socket: " + e.getMessage());
             System.exit(1);
@@ -271,7 +261,7 @@ public class Barrel extends UnicastRemoteObject implements IBarrel, Runnable {
     public void run() {
         // Connect to the Gateway
         try {
-            gw = (IGatewayBrl) Naming.lookup("rmi://" + SERVER_IP_ADDRESS + ":1099/gw");
+            gw = (IGatewayBrl) Naming.lookup("rmi://" + SERVER_IP_ADDRESS + ":" + SERVER_PORT + "/gw");
             System.out.println("Barrel connected to Gateway.");
         } catch (NotBoundException e) {
             System.err.println("Gateway not bound. Exiting program.");
@@ -306,8 +296,9 @@ public class Barrel extends UnicastRemoteObject implements IBarrel, Runnable {
     private void listenForMulticastMessages() {
         try {
             // Join the multicast group
-            InetAddress group = InetAddress.getByName(multicastAddress);
-            multicastSocket.joinGroup(new InetSocketAddress(group, multicastPort), NetworkInterface.getByIndex(0));
+            InetAddress group = InetAddress.getByName(MULTICAST_ADDR);
+            multicastSocket.joinGroup(new InetSocketAddress(group, MULTICAST_PORT), NetworkInterface.getByIndex(0));
+
             System.out.println("Barrel " + id + " listening for multicast messages...");
 
             // Load the inverted index and linked pages from files
@@ -563,6 +554,9 @@ public class Barrel extends UnicastRemoteObject implements IBarrel, Runnable {
         try (FileInputStream input = new FileInputStream("assets/config.properties")) {
             prop.load(input);
             SERVER_IP_ADDRESS = prop.getProperty("server_ip");
+            SERVER_PORT = prop.getProperty("server_port");
+            MULTICAST_ADDR = prop.getProperty("multicast_ip");
+            MULTICAST_PORT = Integer.parseInt(prop.getProperty("multicast_port"));
             return Integer.parseInt(prop.getProperty("barrels"));
         } catch (IOException ex) {
             System.out.println("Failed to load config file: " + ex.getMessage());
@@ -604,15 +598,11 @@ public class Barrel extends UnicastRemoteObject implements IBarrel, Runnable {
      * @param args command line arguments
      */
     public static void main(String[] args) {
-        // Multicast address and port
-        String multicastAddress = "230.0.0.0";
-        int multicastPort = 12345;
-
         int nBarrels = loadConfig();
 
         for (int i = 1; i <= nBarrels; i++) {
             try {
-                Barrel barrel = new Barrel(multicastAddress, multicastPort);
+                Barrel barrel = new Barrel();
                 Thread thread = new Thread(barrel);
                 thread.start();
             } catch (RemoteException e) {
