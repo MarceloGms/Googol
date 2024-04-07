@@ -253,8 +253,8 @@ public class Downloader extends UnicastRemoteObject implements IDownloader, Runn
         extract(url);
         try {
             // Prepare the information to be sent
-            String resposta = "URL: " + url + "\nTitle: " + title + "\nCitation: " + citation + "\nKeywords: " + keywords + "\nLinks: " + ulrsList;
-            byte[] data = resposta.getBytes();
+            String message = "URL: " + url + "\nTitle: " + title + "\nCitation: " + citation + "\nKeywords: " + keywords + "\nLinks: " + ulrsList;
+            byte[] data = message.getBytes();
 
             // Create a DatagramPacket with the data and the multicast address and port
             InetAddress group = InetAddress.getByName(MULTICAST_ADDR);
