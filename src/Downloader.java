@@ -57,7 +57,7 @@ public class Downloader extends UnicastRemoteObject implements IDownloader, Runn
   /**
    * List of extracted URLs.
    */
-  private ArrayList<String> ulrsList;
+  private ArrayList<String> urlsList;
 
   /**
    * List extracted keywords.
@@ -253,7 +253,7 @@ public class Downloader extends UnicastRemoteObject implements IDownloader, Runn
         extract(url);
         try {
             // Prepare the information to be sent
-            String message = "URL: " + url + "\nTitle: " + title + "\nCitation: " + citation + "\nKeywords: " + keywords + "\nLinks: " + ulrsList;
+            String message = "URL: " + url + "\nTitle: " + title + "\nCitation: " + citation + "\nKeywords: " + keywords + "\nLinks: " + urlsList;
             byte[] data = message.getBytes();
 
             // Create a DatagramPacket with the data and the multicast address and port
@@ -337,11 +337,11 @@ public class Downloader extends UnicastRemoteObject implements IDownloader, Runn
       citation = doc.select("meta[name=description]").attr("content");
       
       // Extract links
-      ulrsList = new ArrayList<>();
+      urlsList = new ArrayList<>();
       Elements links = doc.select("a[href]");
       for (Element link : links) {
         String linkUrl = link.attr("abs:href");
-        ulrsList.add(linkUrl);
+        urlsList.add(linkUrl);
         queue.offer(linkUrl);
         queueSemaphore.release();
         // gw.DlMessage("URL added to the DL queue: " + linkUrl);
