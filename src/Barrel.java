@@ -44,7 +44,6 @@ public class Barrel extends UnicastRemoteObject implements IBarrel, Runnable {
     private static String MULTICAST_ADDR;
     private static int MULTICAST_PORT;
 
-
     public Barrel() throws RemoteException {
         invertedIndex = new HashMap<>();
         running = true;
