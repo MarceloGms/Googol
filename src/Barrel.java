@@ -334,7 +334,7 @@ public class Barrel extends UnicastRemoteObject implements IBarrel, Runnable {
 
                 String message = new String(packet.getData(), 0, packet.getLength());
                 //System.out.println("Barrel " + id + " received message from " + packet.getAddress().getHostAddress() + ": " + message);
-
+                System.out.println(message);
                 // Process the message dividing it into parts
                 String[] parts = message.split("\n");
                 String url = parts[0].replace("URL: ", "");
@@ -383,7 +383,7 @@ public class Barrel extends UnicastRemoteObject implements IBarrel, Runnable {
     }
 
     /**
-     * The saveHashMapToFile method is used to save a hashmap<String, HashSet<String>> to a file.
+     * The saveHashMapToFile method is used to save a hashmap to a file.
      * @param hashMap hashmap to save
      * @param filename name of the file to save
      */
@@ -402,7 +402,7 @@ public class Barrel extends UnicastRemoteObject implements IBarrel, Runnable {
     }
 
     /**
-     * The readHashMapFromFile method is used to read a hashmap<String, HashSet<String>> from a file.
+     * The readHashMapFromFile method is used to read a hashmap from a file.
      * @param filename name of the file to read
      * @return hashmap read from file
      */
@@ -428,7 +428,7 @@ public class Barrel extends UnicastRemoteObject implements IBarrel, Runnable {
     }
 
     /**
-     * The saveHashMapToFileTop10 method is used to save a hashmap<String, Integer> to a file.
+     * The saveHashMapToFileTop10 method is used to save the top10 hashmap to a file.
      * @param hashMap hashmap to save
      * @param filename name of the file to save
      */
@@ -447,7 +447,7 @@ public class Barrel extends UnicastRemoteObject implements IBarrel, Runnable {
     }
 
     /**
-     * The readHashMapFromFileTop10 method is used to read a hashmap<String, Integer> from a file.
+     * The readHashMapFromFileTop10 method is used to read the top10 hashmap from a file.
      * @param filename name of the file to read
      * @return hashmap read from file
      */

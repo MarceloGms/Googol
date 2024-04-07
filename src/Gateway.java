@@ -209,8 +209,7 @@ public class Gateway extends UnicastRemoteObject implements IGatewayCli, IGatewa
 
   /**
    * Gets the top 10 searches by choosing a random barrel to perform the operation.
-   * @return the top 10 searches to the client.
-   * @return "No barrels available" if there are no barrels available.
+   * @return the top 10 searches to the client. Returns "No barrels available" if there are no barrels available.
    * @throws RemoteException if there is a remote communication error.
    */
   @Override
@@ -226,8 +225,7 @@ public class Gateway extends UnicastRemoteObject implements IGatewayCli, IGatewa
 
   /**
    * Gets the active barrels by returning the IDs of the active barrels.
-   * @return the IDs of the active barrels to the client.
-   * @return "No barrels available" if there are no active barrels.
+   * @return the IDs of the active barrels to the client. Returns "No barrels available" if there are no barrels available.
    * @throws RemoteException if there is a remote communication error.
    */
   @Override
