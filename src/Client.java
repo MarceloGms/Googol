@@ -62,6 +62,11 @@ public class Client extends UnicastRemoteObject implements IClient {
   private String SERVER_IP_ADDRESS;
 
   /**
+   * The port number of the gateway RMI server.
+   */
+  private String SERVER_PORT;
+
+  /**
    * Constructs a new Client object and connects it to the Gateway via rmi.
    * @throws RemoteException if there is an RMI-related error.
    */
@@ -86,7 +91,7 @@ public class Client extends UnicastRemoteObject implements IClient {
    */
   private void connectToGateway() {
     try {
-        gw = (IGatewayCli) Naming.lookup("rmi://" + SERVER_IP_ADDRESS + ":1099/gw");
+        gw = (IGatewayCli) Naming.lookup("rmi://" + SERVER_IP_ADDRESS + ":" + SERVER_PORT + "/gw");
         gw.subscribe(this);
     } catch (RemoteException | NotBoundException | MalformedURLException e) {
         handleErrorAndExit("Error connecting to the Gateway.");
@@ -218,7 +223,10 @@ public class Client extends UnicastRemoteObject implements IClient {
     try {
       result = gw.search(query);
       if (result != null) {
-        if (result.equals("No barrels available")) {
+        if (result.equals("")) {
+          System.out.println(ANSI_RED + "No results found.\n" + ANSI_RESET);
+          return;
+        } else if (result.equals("No barrels available")) {
           System.out.println(ANSI_RED + "No barrels available.\n" + ANSI_RESET);
           return;
         } else {
@@ -281,7 +289,10 @@ public class Client extends UnicastRemoteObject implements IClient {
     try {
       result = gw.findSubLinks(url);
       if (result != null) {
-        if (result.equals("No barrels available")) {
+        if (result.equals("")) {
+          System.out.println(ANSI_RED + "No results found.\n" + ANSI_RESET);
+          return;
+        } else if (result.equals("No barrels available")) {
           System.out.println(ANSI_RED + "No barrels available.\n" + ANSI_RESET);
           return;
         } else if (result.equals("Invalid URL.")) {
@@ -482,6 +493,7 @@ public class Client extends UnicastRemoteObject implements IClient {
     try (FileInputStream input = new FileInputStream("assets/config.properties")) {
       prop.load(input);
       SERVER_IP_ADDRESS = prop.getProperty("server_ip");
+      SERVER_PORT = prop.getProperty("server_port");
     } catch (IOException ex) {
       System.out.println(ANSI_RED + "Error occurred while trying to load config file." + ANSI_RESET);
       System.exit(1);

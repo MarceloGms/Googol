@@ -54,6 +54,11 @@ public class Gateway extends UnicastRemoteObject implements IGatewayCli, IGatewa
   private String SERVER_IP_ADDRESS;
 
   /**
+   * The port number of the gateway RMI server.
+   */
+  private int SERVER_PORT;
+
+  /**
    * The ID to assign to the next barrel.
    */
   private int nextId;
@@ -103,9 +108,9 @@ public class Gateway extends UnicastRemoteObject implements IGatewayCli, IGatewa
   private void bindGatewayToRegistry() {
     try {
       LOGGER.info("Gateway starting...\n");
-      LocateRegistry.createRegistry(1099);
+      LocateRegistry.createRegistry(SERVER_PORT);
       LOGGER.info("RMI registry created...\n");
-      Naming.rebind("rmi://" + SERVER_IP_ADDRESS + ":1099/gw", this);
+      Naming.rebind("rmi://" + SERVER_IP_ADDRESS + ":" + SERVER_PORT + "/gw", this);
       LOGGER.info("Gateway bound to RMI registry on ip: " + SERVER_IP_ADDRESS + "\n");
     } catch (RemoteException | MalformedURLException e) {
       LOGGER.log(Level.SEVERE, "Exception occurred: ", e);
@@ -281,7 +286,7 @@ public class Gateway extends UnicastRemoteObject implements IGatewayCli, IGatewa
     if (downloaderManager != null) {
       downloaderManager = null;
       LOGGER.warning("Downloader Manager crashed\n");
-      /* new Downloader("230.0.0.0", 12345);
+      /* new Downloader();
       LOGGER.info("New Downloader Manager starting...\n"); */
     } else {
       LOGGER.warning("Downloader Manager not found\n");
@@ -411,6 +416,7 @@ public class Gateway extends UnicastRemoteObject implements IGatewayCli, IGatewa
     try (FileInputStream input = new FileInputStream("assets/config.properties")) {
       prop.load(input);
       SERVER_IP_ADDRESS = prop.getProperty("server_ip");
+      SERVER_PORT = Integer.parseInt(prop.getProperty("server_port"));
     } catch (IOException ex) {
       System.out.println("Failed to load config file: " + ex.getMessage());
       System.exit(1);

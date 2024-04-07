@@ -47,4 +47,4 @@
 ### Final considerations
 
 - Ensure all of the server's components are running before starting to perform client operations.
-- Modify the `config.properties` file to change the server ip address, number of barrels or number of downloaders.
+- Modify the `assets/config.properties` file to change the server ip address, number of barrels or number of downloaders.
