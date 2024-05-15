@@ -16,7 +16,7 @@ brl:
 
 # run downloaders
 dl:
-	@java -cp bin;lib/* Downloader
+	@java -cp bin;lib/* com.googol.googolfe.Downloader
 # for linux
 # @java -cp bin:lib/* Downloader
 
