@@ -92,7 +92,6 @@ public class Client extends UnicastRemoteObject implements IClient {
   private void connectToGateway() {
     try {
         gw = (IGatewayCli) Naming.lookup("rmi://" + SERVER_IP_ADDRESS + ":" + SERVER_PORT + "/gw");
-        gw.subscribe(this);
     } catch (RemoteException | NotBoundException | MalformedURLException e) {
         handleErrorAndExit("Error connecting to the Gateway.");
     }
